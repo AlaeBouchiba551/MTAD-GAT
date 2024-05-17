@@ -176,13 +176,14 @@ class Plotter:
         for nr, data_copy in enumerate(plot_data):
             is_test = nr == 0
 
-            if feature < 0 or f"Forecast_{feature}" not in data_copy.columns:
-                raise Exception(f"Channel {feature} not present in data.")
+           # if feature < 0 or f"Forecast_{feature}" not in data_copy.columns:
+              #
+    #raise Exception(f"Channel {feature} not present in data.")
 
             i = feature
             plot_values = {
                 "timestamp": data_copy["timestamp"].values,
-                "y_forecast": data_copy[f"Forecast_{i}"].values,
+               # "y_forecast": data_copy[f"Forecast_{i}"].values,
                 "y_recon": data_copy[f"Recon_{i}"].values,
                 "y_true": data_copy[f"True_{i}"].values,
                 "errors": data_copy[f"A_Score_{i}"].values,
@@ -211,7 +212,7 @@ class Plotter:
             y_df = pd.DataFrame(
                 {
                     "timestamp": plot_values["timestamp"].reshape(-1,),
-                    "y_forecast": plot_values["y_forecast"].reshape(-1,),
+                    #"y_forecast": plot_values["y_forecast"].reshape(-1,),
                     "y_recon": plot_values["y_recon"].reshape(-1,),
                     "y_true": plot_values["y_true"].reshape(-1,)
                 }
@@ -227,7 +228,7 @@ class Plotter:
 
             data_type = "Test data" if is_test else "Train data"
             y_layout = {
-                "title": f"{data_type} | Forecast & reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
+                "title": f"{data_type} |  reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
                 "showlegend": True,
                 "height": 400,
                 "width": 1100,
@@ -251,12 +252,12 @@ class Plotter:
                     line_color="rgb(0, 204, 150, 0.5)",
                     name="y_true",
                     line=dict(width=2)),
-                go.Scatter(
-                    x=y_df["timestamp"],
-                    y=y_df["y_forecast"],
-                    line_color="rgb(255, 127, 14, 1)",
-                    name="y_forecast",
-                    line=dict(width=2)),
+                #go.Scatter(
+                    #x=y_df["timestamp"],
+                   # y=y_df["y_forecast"],
+                    #line_color="rgb(255, 127, 14, 1)",
+                    #name="y_forecast",
+                    #line=dict(width=2)),
                 go.Scatter(
                     x=y_df["timestamp"],
                     y=y_df["y_recon"],

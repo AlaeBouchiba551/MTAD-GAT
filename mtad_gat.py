@@ -6,7 +6,7 @@ from modules import (
     FeatureAttentionLayer,
     TemporalAttentionLayer,
     GRULayer,
-    Forecasting_Model,
+    #Forecasting_Model,
     ReconstructionModel,
 )
 
@@ -45,8 +45,8 @@ class MTAD_GAT(nn.Module):
         use_gatv2=True,
         gru_n_layers=1,
         gru_hid_dim=150,
-        forecast_n_layers=1,
-        forecast_hid_dim=150,
+        #forecast_n_layers=1,
+        #forecast_hid_dim=150,
         recon_n_layers=1,
         recon_hid_dim=150,
         dropout=0.2,
@@ -58,7 +58,7 @@ class MTAD_GAT(nn.Module):
         self.feature_gat = FeatureAttentionLayer(n_features, window_size, dropout, alpha, feat_gat_embed_dim, use_gatv2)
         self.temporal_gat = TemporalAttentionLayer(n_features, window_size, dropout, alpha, time_gat_embed_dim, use_gatv2)
         self.gru = GRULayer(3 * n_features, gru_hid_dim, gru_n_layers, dropout)
-        self.forecasting_model = Forecasting_Model(gru_hid_dim, forecast_hid_dim, out_dim, forecast_n_layers, dropout)
+        #self.forecasting_model = Forecasting_Model(gru_hid_dim, forecast_hid_dim, out_dim, forecast_n_layers, dropout)
         self.recon_model = ReconstructionModel(window_size, gru_hid_dim, recon_hid_dim, out_dim, recon_n_layers, dropout)
 
     def forward(self, x):
@@ -73,7 +73,8 @@ class MTAD_GAT(nn.Module):
         _, h_end = self.gru(h_cat)
         h_end = h_end.view(x.shape[0], -1)   # Hidden state for last timestamp
 
-        predictions = self.forecasting_model(h_end)
+        #predictions = self.forecasting_model(h_end)
         recons = self.recon_model(h_end)
 
-        return predictions, recons
+        return #predictions
+        return recons
