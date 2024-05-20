@@ -257,6 +257,29 @@ class RNNDecoder(nn.Module):
         return decoder_out
 
 
+import torch
+import torch.nn as nn
+
+
+class RNNDecoder(nn.Module):
+    """GRU-based Decoder network that converts latent vector into output
+    :param in_dim: number of input features
+    :param n_layers: number of layers in RNN
+    :param hid_dim: hidden size of the RNN
+    :param dropout: dropout rate
+    """
+
+    def __init__(self, in_dim, hid_dim, n_layers, dropout):
+        super(RNNDecoder, self).__init__()
+        self.in_dim = in_dim
+        self.dropout = 0.0 if n_layers == 1 else dropout
+        self.rnn = nn.GRU(in_dim, hid_dim, n_layers, batch_first=True, dropout=self.dropout)
+
+    def forward(self, x):
+        decoder_out, _ = self.rnn(x)
+        return decoder_out
+
+
 class ReconstructionModel(nn.Module):
     """Reconstruction Model
     :param window_size: length of the input sequence
@@ -274,36 +297,12 @@ class ReconstructionModel(nn.Module):
         self.fc = nn.Linear(hid_dim, out_dim)
 
     def forward(self, x):
-        # x will be last hidden state of the GRU layer
+        # x will be the last hidden state of the GRU layer
         h_end = x
-        h_end_rep = h_end.repeat_interleave(self.window_size, dim=1).view(x.size(0), self.window_size, -1)
+        # Reshape h_end to have shape (batch_size, window_size, in_dim)
+        batch_size = h_end.size(0)
+        h_end_rep = h_end.unsqueeze(1).repeat(1, self.window_size, 1)
+
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
         return out
-
-class Forecasting_Model(nn.Module):
-    """Forecasting model (fully-connected network)
-    :param in_dim: number of input features
-    :param hid_dim: hidden size of the FC network
-    :param out_dim: number of output features
-    :param n_layers: number of FC layers
-    :param dropout: dropout rate
-    """
-
-    def __init__(self, in_dim, hid_dim, out_dim, n_layers, dropout):
-        super(Forecasting_Model, self).__init__()
-        layers = [nn.Linear(in_dim, hid_dim)]
-        for _ in range(n_layers - 1):
-            layers.append(nn.Linear(hid_dim, hid_dim))
-
-        layers.append(nn.Linear(hid_dim, out_dim))
-
-        self.layers = nn.ModuleList(layers)
-        self.dropout = nn.Dropout(dropout)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        for i in range(len(self.layers) - 1):
-            x = self.relu(self.layers[i](x))
-            x = self.dropout(x)
-        return self.layers[-1](x)
