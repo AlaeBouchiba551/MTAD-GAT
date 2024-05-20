@@ -18,7 +18,7 @@ class Trainer:
         init_lr=0.001,
         recon_criterion=nn.MSELoss(),
         use_cuda=True,
-        dload="",
+        dload="saved_models/",
         log_dir="output/",
         print_every=1,
         log_tensorboard=True,
