@@ -277,7 +277,6 @@ class ReconstructionModel(nn.Module):
         # x will be last hidden state of the GRU layer
         h_end = x
         h_end_rep = h_end.repeat_interleave(self.window_size, dim=1).view(x.size(0), self.window_size, -1)
-
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
         return out

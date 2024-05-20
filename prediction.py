@@ -112,7 +112,7 @@ class Predictor:
             print("Loading anomaly scores")
 
             train_pred_df = pd.read_pickle(f"{self.save_path}/train_output.pkl")
-            test_pred_df = pd.read_pickle(f"{self.save_path}/test_output.pkl")
+            test_pred_df = pd.read_pickle(f"{self.save_path}/test_output.pkl")f
 
             train_anomaly_scores = train_pred_df['A_Score_Global'].values
             test_anomaly_scores = test_pred_df['A_Score_Global'].values
