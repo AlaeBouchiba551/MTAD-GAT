@@ -261,9 +261,9 @@ class ReconstructionModel(nn.Module):
     """Reconstruction Model
     :param window_size: length of the input sequence
     :param in_dim: number of input features
-    :param n_layers: number of layers in RNN
     :param hid_dim: hidden size of the RNN
-    :param in_dim: number of output features
+    :param out_dim: number of output features
+    :param n_layers: number of layers in RNN
     :param dropout: dropout rate
     """
 
@@ -281,6 +281,7 @@ class ReconstructionModel(nn.Module):
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
         return out
+
 class Forecasting_Model(nn.Module):
     """Forecasting model (fully-connected network)
     :param in_dim: number of input features
