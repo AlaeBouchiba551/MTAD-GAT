@@ -74,10 +74,10 @@ if __name__ == "__main__":
     # Initialize the reconstruction model
     model = ReconstructionModel(
         window_size=window_size,
-        input_dim=n_features,
-        hidden_dim=args.recon_hid_dim,
-        output_dim=out_dim,
-        num_layers=args.recon_n_layers,
+        in_dim=n_features,  # Corrected from input_dim to in_dim
+        hid_dim=args.recon_hid_dim,  # Corrected from hidden_dim to recon_hid_dim
+        out_dim=out_dim,
+        n_layers=args.recon_n_layers,
         dropout=args.dropout
     )
 
