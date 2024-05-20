@@ -161,11 +161,9 @@ class Trainer:
         return (recon_loss, total_loss)
 
     def save(self, file_name):
-        PATH = self.dload + "/" + file_name
-        if os.path.exists(self.dload):
-            pass
-        else:
-            os.mkdir(self.dload)
+        PATH = os.path.join(self.dload, file_name)
+        if not os.path.exists(self.dload):
+            os.makedirs(self.dload)
         torch.save(self.model.state_dict(), PATH)
 
     def load(self, PATH):
