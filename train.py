@@ -6,7 +6,7 @@ import torch
 
 from args import get_parser
 from utils import *
-from mtad_gat import ReconstructionModel  # Import only the ReconstructionModel
+from mtad_gat import ReconstructionModel
 from training import Trainer
 
 
@@ -74,8 +74,8 @@ if __name__ == "__main__":
     # Initialize the reconstruction model
     model = ReconstructionModel(
         window_size=window_size,
-        in_dim=n_features,  # Corrected from input_dim to in_dim
-        hid_dim=args.recon_hid_dim,  # Corrected from hidden_dim to recon_hid_dim
+        in_dim=n_features,
+        hid_dim=args.recon_hid_dim,
         out_dim=out_dim,
         n_layers=args.recon_n_layers,
         dropout=args.dropout
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         optimizer,
         window_size,
         n_features,
-        target_dims=target_dims,  # Corrected argument position
+        target_dims=target_dims,
         n_epochs=n_epochs,
         batch_size=batch_size,
         init_lr=init_lr,

@@ -282,8 +282,9 @@ class ReconstructionModel(nn.Module):
         if len(h_end.shape) == 2:  # If h_end has shape (batch_size, in_dim)
             h_end_rep = h_end.unsqueeze(1).repeat(1, self.window_size, 1)
         elif len(h_end.shape) == 3:  # If h_end has shape (batch_size, seq_len, in_dim)
-            h_end_rep = h_end.repeat(1, self.window_size, 1)
+            h_end_rep = h_end.repeat(1, self.window_size // h_end.size(1), 1)
 
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
         return out
+

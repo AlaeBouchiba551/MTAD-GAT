@@ -6,25 +6,6 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 class Trainer:
-    """Trainer class for MTAD-GAT model.
-
-    :param model: MTAD-GAT model
-    :param optimizer: Optimizer used to minimize the loss function
-    :param window_size: Length of the input sequence
-    :param n_features: Number of input features
-    :param target_dims: dimension of input features to forecast and reconstruct
-    :param n_epochs: Number of iterations/epochs
-    :param batch_size: Number of windows in a single batch
-    :param init_lr: Initial learning rate of the module
-    :param recon_criterion: Loss to be used for reconstruction.
-    :param boolean use_cuda: To be run on GPU or not
-    :param dload: Download directory where models are to be dumped
-    :param log_dir: Directory where SummaryWriter logs are written to
-    :param print_every: At what epoch interval to print losses
-    :param log_tensorboard: Whether to log loss++ to tensorboard
-    :param args_summary: Summary of args that will also be written to tensorboard if log_tensorboard
-    """
-
     def __init__(
         self,
         model,
@@ -75,13 +56,6 @@ class Trainer:
             self.writer.add_text("args_summary", args_summary)
 
     def fit(self, train_loader, val_loader=None):
-        """Train model for self.n_epochs.
-        Train and validation (if validation loader given) losses stored in self.losses
-
-        :param train_loader: train loader of input data
-        :param val_loader: validation loader of input data
-        """
-
         init_train_loss = self.evaluate(train_loader)
         print(f"Init total train loss: {init_train_loss[1]:.5f}")
 
@@ -103,6 +77,7 @@ class Trainer:
 
                 recons = self.model(x)
 
+                # Adjust the target to match the output shape
                 if self.target_dims is not None:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
@@ -122,8 +97,6 @@ class Trainer:
             self.losses["train_recon"].append(recon_epoch_loss)
             self.losses["train_total"].append(total_epoch_loss)
 
-            # Evaluate on validation set
-            recon_val_loss, total_val_loss = "NA", "NA"
             if val_loader is not None:
                 recon_val_loss, total_val_loss = self.evaluate(val_loader)
                 self.losses["val_recon"].append(recon_val_loss)
@@ -163,12 +136,6 @@ class Trainer:
         print(f"-- Training done in {train_time}s.")
 
     def evaluate(self, data_loader):
-        """Evaluate model
-
-        :param data_loader: data loader of input data
-        :return forecasting loss, reconstruction loss, total loss
-        """
-
         self.model.eval()
         recon_losses = []
 
@@ -179,6 +146,7 @@ class Trainer:
 
                 recons = self.model(x)
 
+                # Adjust the target to match the output shape
                 if self.target_dims is not None:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
@@ -193,10 +161,6 @@ class Trainer:
         return (recon_loss, total_loss)
 
     def save(self, file_name):
-        """
-        Pickles the model parameters to be retrieved later
-        :param file_name: the filename to be saved as,`dload` serves as the download directory
-        """
         PATH = self.dload + "/" + file_name
         if os.path.exists(self.dload):
             pass
@@ -205,10 +169,6 @@ class Trainer:
         torch.save(self.model.state_dict(), PATH)
 
     def load(self, PATH):
-        """
-        Loads the model's parameters from the path mentioned
-        :param PATH: Should contain pickle file
-        """
         self.model.load_state_dict(torch.load(PATH, map_location=self.device))
 
     def write_loss(self, epoch):
