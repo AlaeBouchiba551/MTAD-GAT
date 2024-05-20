@@ -89,7 +89,7 @@ if __name__ == "__main__":
         optimizer,
         window_size,
         n_features,
-        target_dims=None,  # Corrected argument position
+        target_dims=target_dims,  # Corrected argument position
         n_epochs=n_epochs,
         batch_size=batch_size,
         init_lr=init_lr,
