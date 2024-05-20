@@ -281,31 +281,29 @@ class ReconstructionModel(nn.Module):
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
         return out
+class Forecasting_Model(nn.Module):
+    """Forecasting model (fully-connected network)
+    :param in_dim: number of input features
+    :param hid_dim: hidden size of the FC network
+    :param out_dim: number of output features
+    :param n_layers: number of FC layers
+    :param dropout: dropout rate
+    """
 
+    def __init__(self, in_dim, hid_dim, out_dim, n_layers, dropout):
+        super(Forecasting_Model, self).__init__()
+        layers = [nn.Linear(in_dim, hid_dim)]
+        for _ in range(n_layers - 1):
+            layers.append(nn.Linear(hid_dim, hid_dim))
 
-#class Forecasting_Model(nn.Module):
-  #  """Forecasting model (fully-connected network)
-   # :param in_dim: number of input features
-    #:param hid_dim: hidden size of the FC network
-   # :param out_dim: number of output features
-   # :param n_layers: number of FC layers
-   # :param dropout: dropout rate
+        layers.append(nn.Linear(hid_dim, out_dim))
 
+        self.layers = nn.ModuleList(layers)
+        self.dropout = nn.Dropout(dropout)
+        self.relu = nn.ReLU()
 
- #   def __init__(self, in_dim, hid_dim, out_dim, n_layers, dropout):
-   #     super(Forecasting_Model, self).__init__()
-  #      layers = [nn.Linear(in_dim, hid_dim)]
-  #      for _ in range(n_layers - 1):
-   #         layers.append(nn.Linear(hid_dim, hid_dim))
-
-   #     layers.append(nn.Linear(hid_dim, out_dim))
-
-  #      self.layers = nn.ModuleList(layers)
-  #      self.dropout = nn.Dropout(dropout)
-   #     self.relu = nn.ReLU()
-
-   # def forward(self, x):
-    #    for i in range(len(self.layers) - 1):
-     #       x = self.relu(self.layers[i](x))
-      #      x = self.dropout(x)
-     #   return self.layers[-1](x)
+    def forward(self, x):
+        for i in range(len(self.layers) - 1):
+            x = self.relu(self.layers[i](x))
+            x = self.dropout(x)
+        return self.layers[-1](x)

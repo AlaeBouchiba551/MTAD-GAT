@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-
 class Trainer:
     """Trainer class for MTAD-GAT model.
 
@@ -17,7 +16,6 @@ class Trainer:
     :param n_epochs: Number of iterations/epochs
     :param batch_size: Number of windows in a single batch
     :param init_lr: Initial learning rate of the module
-    :param forecast_criterion: Loss to be used for forecasting.
     :param recon_criterion: Loss to be used for reconstruction.
     :param boolean use_cuda: To be run on GPU or not
     :param dload: Download directory where models are to be dumped
@@ -37,7 +35,6 @@ class Trainer:
         n_epochs=200,
         batch_size=256,
         init_lr=0.001,
-        forecast_criterion=nn.MSELoss(),
         recon_criterion=nn.MSELoss(),
         use_cuda=True,
         dload="",
@@ -55,7 +52,6 @@ class Trainer:
         self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.init_lr = init_lr
-        self.forecast_criterion = forecast_criterion
         self.recon_criterion = recon_criterion
         self.device = "cuda" if use_cuda and torch.cuda.is_available() else "cpu"
         self.dload = dload
@@ -65,10 +61,8 @@ class Trainer:
 
         self.losses = {
             "train_total": [],
-            "train_forecast": [],
             "train_recon": [],
             "val_total": [],
-            "val_forecast": [],
             "val_recon": [],
         }
         self.epoch_times = []
@@ -89,18 +83,17 @@ class Trainer:
         """
 
         init_train_loss = self.evaluate(train_loader)
-        print(f"Init total train loss: {init_train_loss[2]:5f}")
+        print(f"Init total train loss: {init_train_loss[1]:.5f}")
 
         if val_loader is not None:
             init_val_loss = self.evaluate(val_loader)
-            print(f"Init total val loss: {init_val_loss[2]:.5f}")
+            print(f"Init total val loss: {init_val_loss[1]:.5f}")
 
         print(f"Training model for {self.n_epochs} epochs..")
         train_start = time.time()
         for epoch in range(self.n_epochs):
             epoch_start = time.time()
             self.model.train()
-            forecast_b_losses = []
             recon_b_losses = []
 
             for x, y in train_loader:
@@ -108,44 +101,31 @@ class Trainer:
                 y = y.to(self.device)
                 self.optimizer.zero_grad()
 
-                preds, recons = self.model(x)
+                recons = self.model(x)
 
                 if self.target_dims is not None:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
 
-                if preds.ndim == 3:
-                    preds = preds.squeeze(1)
-                if y.ndim == 3:
-                    y = y.squeeze(1)
-
-                forecast_loss = torch.sqrt(self.forecast_criterion(y, preds))
                 recon_loss = torch.sqrt(self.recon_criterion(x, recons))
-                loss = forecast_loss + recon_loss
+                loss = recon_loss
 
                 loss.backward()
                 self.optimizer.step()
 
-                forecast_b_losses.append(forecast_loss.item())
                 recon_b_losses.append(recon_loss.item())
 
-            forecast_b_losses = np.array(forecast_b_losses)
             recon_b_losses = np.array(recon_b_losses)
-
-            forecast_epoch_loss = np.sqrt((forecast_b_losses ** 2).mean())
             recon_epoch_loss = np.sqrt((recon_b_losses ** 2).mean())
+            total_epoch_loss = recon_epoch_loss
 
-            total_epoch_loss = forecast_epoch_loss + recon_epoch_loss
-
-            self.losses["train_forecast"].append(forecast_epoch_loss)
             self.losses["train_recon"].append(recon_epoch_loss)
             self.losses["train_total"].append(total_epoch_loss)
 
             # Evaluate on validation set
-            forecast_val_loss, recon_val_loss, total_val_loss = "NA", "NA", "NA"
+            recon_val_loss, total_val_loss = "NA", "NA"
             if val_loader is not None:
-                forecast_val_loss, recon_val_loss, total_val_loss = self.evaluate(val_loader)
-                self.losses["val_forecast"].append(forecast_val_loss)
+                recon_val_loss, total_val_loss = self.evaluate(val_loader)
                 self.losses["val_recon"].append(recon_val_loss)
                 self.losses["val_total"].append(total_val_loss)
 
@@ -161,15 +141,13 @@ class Trainer:
             if epoch % self.print_every == 0:
                 s = (
                     f"[Epoch {epoch + 1}] "
-                    f"forecast_loss = {forecast_epoch_loss:.5f}, "
                     f"recon_loss = {recon_epoch_loss:.5f}, "
                     f"total_loss = {total_epoch_loss:.5f}"
                 )
 
                 if val_loader is not None:
                     s += (
-                        f" ---- val_forecast_loss = {forecast_val_loss:.5f}, "
-                        f"val_recon_loss = {recon_val_loss:.5f}, "
+                        f" ---- val_recon_loss = {recon_val_loss:.5f}, "
                         f"val_total_loss = {total_val_loss:.5f}"
                     )
 
@@ -192,8 +170,6 @@ class Trainer:
         """
 
         self.model.eval()
-
-        forecast_losses = []
         recon_losses = []
 
         with torch.no_grad():
@@ -201,32 +177,20 @@ class Trainer:
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                preds, recons = self.model(x)
+                recons = self.model(x)
 
                 if self.target_dims is not None:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
 
-                if preds.ndim == 3:
-                    preds = preds.squeeze(1)
-                if y.ndim == 3:
-                    y = y.squeeze(1)
-
-                forecast_loss = torch.sqrt(self.forecast_criterion(y, preds))
                 recon_loss = torch.sqrt(self.recon_criterion(x, recons))
-
-                forecast_losses.append(forecast_loss.item())
                 recon_losses.append(recon_loss.item())
 
-        forecast_losses = np.array(forecast_losses)
         recon_losses = np.array(recon_losses)
-
-        forecast_loss = np.sqrt((forecast_losses ** 2).mean())
         recon_loss = np.sqrt((recon_losses ** 2).mean())
+        total_loss = recon_loss
 
-        total_loss = forecast_loss + recon_loss
-
-        return forecast_loss, recon_loss, total_loss
+        return (recon_loss, total_loss)
 
     def save(self, file_name):
         """

@@ -25,8 +25,6 @@ class MTAD_GAT(nn.Module):
     :param use_gatv2: whether to use the modified attention mechanism of GATv2 instead of standard GAT
     :param gru_n_layers: number of layers in the GRU layer
     :param gru_hid_dim: hidden dimension in the GRU layer
-    :param forecast_n_layers: number of layers in the FC-based Forecasting Model
-    :param forecast_hid_dim: hidden dimension in the FC-based Forecasting Model
     :param recon_n_layers: number of layers in the GRU-based Reconstruction Model
     :param recon_hid_dim: hidden dimension in the GRU-based Reconstruction Model
     :param dropout: dropout rate

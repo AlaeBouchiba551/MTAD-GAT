@@ -1,14 +1,13 @@
-from utils import get_data_dim, get_series_color, get_y_height
+from datetime import datetime
+import json
+import os
 import pandas as pd
 import numpy as np
-import os
-import json
-from datetime import datetime
-import plotly as py
-import matplotlib.pyplot as plt
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
+import plotly as py
 import cufflinks as cf
+from plotly.subplots import make_subplots
+
 cf.go_offline()
 
 
@@ -67,28 +66,6 @@ class Plotter:
 
         self.train_output = train_output
         self.test_output = test_output
-
-    def result_summary(self):
-        path = f"{self.result_path}/summary.txt"
-        if not os.path.exists(path):
-            print(f"Folder {self.result_path} do not have a summary.txt file")
-            return
-        try:
-            print("Result summary:")
-            with open(path) as f:
-                result_dict = json.load(f)
-                epsilon_result = result_dict["epsilon_result"]
-                pot_result = result_dict["pot_result"]
-                bf_results = result_dict["bf_result"]
-                print(f'Epsilon:')
-                print(f'\t\tprecision: {epsilon_result["precision"]:.2f}, recall: {epsilon_result["recall"]:.2f}, F1: {epsilon_result["f1"]:.2f}')
-                print(f'POT:')
-                print(f'\t\tprecision: {pot_result["precision"]:.2f}, recall: {pot_result["recall"]:.2f}, F1: {pot_result["f1"]:.2f}')
-                print(f'Brute-Force:')
-                print(f'\t\tprecision: {bf_results["precision"]:.2f}, recall: {bf_results["recall"]:.2f}, F1: {bf_results["f1"]:.2f}')
-
-        except FileNotFoundError as e:
-            print(e)
 
     def create_shapes(self, ranges, sequence_type, _min, _max, plot_values, is_test=True, xref=None, yref=None):
         """
@@ -199,169 +176,173 @@ class Plotter:
                 anomaly_sequences['pred'] = [[s+start, e+start] for [s, e] in anomaly_sequences['pred']]
                 anomaly_sequences['true'] = [[s+start, e+start] for [s, e] in anomaly_sequences['true']]
 
-            y_min = 1.1 * plot_values["y_true"].min()
-            y_max = 1.1 * plot_values["y_true"].max()
-            e_max = 1.5 * plot_values["errors"].max()
+                y_min = 1.1 * plot_values["y_true"].min()
+                y_max = 1.1 * plot_values["y_true"].max()
+                e_max = 1.5 * plot_values["errors"].max()
 
-            y_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", y_min, y_max, plot_values, is_test=is_test)
-            e_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", 0, e_max, plot_values, is_test=is_test)
-            if self.labels_available and ('SMAP' in self.result_path or 'MSL' in self.result_path):
-                y_shapes += self.create_shapes(anomaly_sequences["true"], "true", y_min, y_max, plot_values, is_test=is_test)
-                e_shapes += self.create_shapes(anomaly_sequences["true"], "true", 0, e_max, plot_values, is_test=is_test)
+                y_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", y_min, y_max, plot_values,
+                                              is_test=is_test)
+                e_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", 0, e_max, plot_values,
+                                              is_test=is_test)
+                if self.labels_available and ('SMAP' in self.result_path or 'MSL' in self.result_path):
+                    y_shapes += self.create_shapes(anomaly_sequences["true"], "true", y_min, y_max, plot_values,
+                                                   is_test=is_test)
+                    e_shapes += self.create_shapes(anomaly_sequences["true"], "true", 0, e_max, plot_values,
+                                                   is_test=is_test)
 
-            y_df = pd.DataFrame(
-                {
-                    "timestamp": plot_values["timestamp"].reshape(-1,),
-                    #"y_forecast": plot_values["y_forecast"].reshape(-1,),
-                    "y_recon": plot_values["y_recon"].reshape(-1,),
-                    "y_true": plot_values["y_true"].reshape(-1,)
+                y_df = pd.DataFrame(
+                    {
+                        "timestamp": plot_values["timestamp"].reshape(-1, ),
+                        # "y_forecast": plot_values["y_forecast"].reshape(-1,),
+                        "y_recon": plot_values["y_recon"].reshape(-1, ),
+                        "y_true": plot_values["y_true"].reshape(-1, )
+                    }
+                )
+
+                e_df = pd.DataFrame(
+                    {
+                        "timestamp": plot_values["timestamp"],
+                        "e_s": plot_values["errors"].reshape(-1, ),
+                        "threshold": plot_values["threshold"],
+                    }
+                )
+
+                data_type = "Test data" if is_test else "Train data"
+                y_layout = {
+                    "title": f"{data_type} |  reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
+                    "showlegend": True,
+                    "height": 400,
+                    "width": 1100,
                 }
-            )
 
-            e_df = pd.DataFrame(
-                {
-                    "timestamp": plot_values["timestamp"],
-                    "e_s": plot_values["errors"].reshape(-1,),
-                    "threshold": plot_values["threshold"],
+                e_layout = {
+                    "title": f"{data_type} | Error for {self.pred_cols[i] if self.pred_cols is not None else ''}",
+                    # "yaxis": dict(range=[0, e_max]),
+                    "height": 400,
+                    "width": 1100,
                 }
-            )
 
-            data_type = "Test data" if is_test else "Train data"
-            y_layout = {
-                "title": f"{data_type} |  reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
-                "showlegend": True,
-                "height": 400,
-                "width": 1100,
-            }
+                if plot_feature_anom:
+                    y_layout["shapes"] = y_shapes
+                    e_layout["shapes"] = e_shapes
 
-            e_layout = {
-                "title": f"{data_type} | Error for {self.pred_cols[i] if self.pred_cols is not None else ''}",
-                #"yaxis": dict(range=[0, e_max]),
-                "height": 400,
-                "width": 1100,
-            }
+                lines = [
+                    go.Scatter(
+                        x=y_df["timestamp"],
+                        y=y_df["y_true"],
+                        line_color="rgb(0, 204, 150, 0.5)",
+                        name="y_true",
+                        line=dict(width=2)),
+                    # go.Scatter(
+                    # x=y_df["timestamp"],
+                    # y=y_df["y_forecast"],
+                    # line_color="rgb(255, 127, 14, 1)",
+                    # name="y_forecast",
+                    # line=dict(width=2)),
+                    go.Scatter(
+                        x=y_df["timestamp"],
+                        y=y_df["y_recon"],
+                        line_color="rgb(31, 119, 180, 1)",
+                        name="y_recon",
+                        line=dict(width=2)),
+                ]
 
-            if plot_feature_anom:
-                y_layout["shapes"] = y_shapes
-                e_layout["shapes"] = e_shapes
+                fig = go.Figure(data=lines, layout=y_layout)
+                py.offline.iplot(fig)
 
-            lines = [
-                go.Scatter(
-                    x=y_df["timestamp"],
-                    y=y_df["y_true"],
-                    line_color="rgb(0, 204, 150, 0.5)",
-                    name="y_true",
-                    line=dict(width=2)),
-                #go.Scatter(
-                    #x=y_df["timestamp"],
-                   # y=y_df["y_forecast"],
-                    #line_color="rgb(255, 127, 14, 1)",
-                    #name="y_forecast",
-                    #line=dict(width=2)),
-                go.Scatter(
-                    x=y_df["timestamp"],
-                    y=y_df["y_recon"],
-                    line_color="rgb(31, 119, 180, 1)",
-                    name="y_recon",
-                    line=dict(width=2)),
-            ]
-
-            fig = go.Figure(data=lines, layout=y_layout)
-            py.offline.iplot(fig)
-
-            e_lines = [
-                go.Scatter(
-                    x=e_df["timestamp"],
-                    y=e_df["e_s"],
-                    name="Error",
-                    line=dict(color="red", width=1))]
-            if plot_feature_anom:
-                e_lines.append(
+                e_lines = [
                     go.Scatter(
                         x=e_df["timestamp"],
-                        y=e_df["threshold"],
-                        name="Threshold",
-                        line=dict(color="black", width=1, dash="dash")))
+                        y=e_df["e_s"],
+                        name="Error",
+                        line=dict(color="red", width=1))]
+                if plot_feature_anom:
+                    e_lines.append(
+                        go.Scatter(
+                            x=e_df["timestamp"],
+                            y=e_df["threshold"],
+                            name="Threshold",
+                            line=dict(color="black", width=1, dash="dash")))
 
-            if plot_errors:
-                e_fig = go.Figure(data=e_lines, layout=e_layout)
-                py.offline.iplot(e_fig)
+                if plot_errors:
+                    e_fig = go.Figure(data=e_lines, layout=e_layout)
+                    py.offline.iplot(e_fig)
 
-    def plot_all_features(self, start=None, end=None, type="test"):
-        """
-        Plotting all features, using the following order:
-            - forecasting for feature i
-            - reconstruction for feature i
-            - true value for feature i
-            - anomaly score (error) for feature i
-        """
-        if type == "train":
-            data_copy = self.train_output.copy()
-        elif type == "test":
-            data_copy = self.test_output.copy()
+        def plot_all_features(self, start=None, end=None, type="test"):
+            """
+            Plotting all features, using the following order:
+                - forecasting for feature i
+                - reconstruction for feature i
+                - true value for feature i
+                - anomaly score (error) for feature i
+            """
+            if type == "train":
+                data_copy = self.train_output.copy()
+            elif type == "test":
+                data_copy = self.test_output.copy()
 
-        data_copy = data_copy.drop(columns=['timestamp', 'A_Score_Global', 'Thresh_Global'])
-        cols = [c for c in data_copy.columns if not (c.startswith('Thresh_') or c.startswith('A_Pred_'))]
-        data_copy = data_copy[cols]
+            data_copy = data_copy.drop(columns=['timestamp', 'A_Score_Global', 'Thresh_Global'])
+            cols = [c for c in data_copy.columns if not (c.startswith('Thresh_') or c.startswith('A_Pred_'))]
+            data_copy = data_copy[cols]
 
-        if start is not None and end is not None:
-            assert start < end
-        if start is not None:
-            data_copy = data_copy.iloc[start:, :]
-        if end is not None:
-            start = 0 if start is None else start
-            data_copy = data_copy.iloc[: end - start, :]
+            if start is not None and end is not None:
+                assert start < end
+            if start is not None:
+                data_copy = data_copy.iloc[start:, :]
+            if end is not None:
+                start = 0 if start is None else start
+                data_copy = data_copy.iloc[: end - start, :]
 
-        num_cols = data_copy.shape[1]
-        plt.tight_layout()
-        colors = ["gray", "gray", "gray", "r"] * (num_cols // 4) + ["b", "g"]
-        data_copy.plot(subplots=True, figsize=(20, num_cols), ylim=(0, 1.5), style=colors)
-        plt.show()
+            num_cols = data_copy.shape[1]
+            plt.tight_layout()
+            colors = ["gray", "gray", "gray", "r"] * (num_cols // 4) + ["b", "g"]
+            data_copy.plot(subplots=True, figsize=(20, num_cols), ylim=(0, 1.5), style=colors)
+            plt.show()
 
-    def plot_anomaly_segments(self, type="test", num_aligned_segments=None, show_boring_series=False):
-        """
-        Finds collective anomalies, i.e. feature-wise anomalies that occur at the same time, and visualize them
-        """
-        is_test = True
-        if type == "train":
-            data_copy = self.train_output.copy()
-            is_test = False
-        elif type == "test":
-            data_copy = self.test_output.copy()
+        def plot_anomaly_segments(self, type="test", num_aligned_segments=None, show_boring_series=False):
+            """
+            Finds collective anomalies, i.e. feature-wise anomalies that occur at the same time, and visualize them
+            """
+            is_test = True
+            if type == "train":
+                data_copy = self.train_output.copy()
+                is_test = False
+            elif type == "test":
+                data_copy = self.test_output.copy()
 
-        def get_pred_cols(df):
-            pred_cols_to_remove = []
-            col_names_to_remove = []
-            for i, col in enumerate(self.pred_cols):
-                y = df[f"True_{i}"].values
-                if np.average(y) >= 0.95 or np.average(y) == 0.0:
-                    pred_cols_to_remove.append(col)
-                    cols = list(df.columns[4 * i : 4 * i + 4])
-                    col_names_to_remove.extend(cols)
+            def get_pred_cols(df):
+                pred_cols_to_remove = []
+                col_names_to_remove = []
+                for i, col in enumerate(self.pred_cols):
+                    y = df[f"True_{i}"].values
+                    if np.average(y) >= 0.95 or np.average(y) == 0.0:
+                        pred_cols_to_remove.append(col)
+                        cols = list(df.columns[4 * i: 4 * i + 4])
+                        col_names_to_remove.extend(cols)
 
-            df.drop(col_names_to_remove, axis=1, inplace=True)
-            return [x for x in self.pred_cols if x not in pred_cols_to_remove]
+                df.drop(col_names_to_remove, axis=1, inplace=True)
+                return [x for x in self.pred_cols if x not in pred_cols_to_remove]
 
-        non_constant_pred_cols = self.pred_cols if show_boring_series else get_pred_cols(data_copy)
+            non_constant_pred_cols = self.pred_cols if show_boring_series else get_pred_cols(data_copy)
 
-        fig = make_subplots(
-            rows=len(non_constant_pred_cols),
-            cols=1,
-            vertical_spacing=0.4 / len(non_constant_pred_cols),
-            shared_xaxes=True,
-        )
+            fig = make_subplots(
+                rows=len(non_constant_pred_cols),
+                cols=1,
+                vertical_spacing=0.4 / len(non_constant_pred_cols),
+                shared_xaxes=True,
+            )
 
-        timestamps = None
-        shapes = []
-        annotations = []
-        for i in range(len(non_constant_pred_cols)):
-            new_idx = int(data_copy.columns[4 * i].split("_")[-1])
-            values = data_copy[f"True_{new_idx}"].values
+            timestamps = None
+            shapes = []
+            annotations = []
+            for i in range(len(non_constant_pred_cols)):
+                new_idx = int(data_copy.columns[4 * i].split("_")[-1])
+                values = data_copy[f"True_{new_idx}"].values
 
-            anomaly_sequences = self.get_anomaly_sequences(data_copy[f"A_Pred_{new_idx}"].values)
+                anomaly_sequences = self.get_anomaly_sequences(data_copy[f"A_Pred_{new_idx}"].values)
 
-            y_min = -0.1
-            y_max = 2  # 0.5 * y_max
+                y_min = -0.1
+                y_max = 2  # 0.5 * y_max
 
             j = i + 1
             xref = f"x{j}" if i > 0 else "x"
@@ -492,3 +473,5 @@ class Plotter:
             layout=layout,
         )
         py.offline.iplot(fig)
+
+
