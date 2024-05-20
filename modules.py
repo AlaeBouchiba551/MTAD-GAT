@@ -257,29 +257,6 @@ class RNNDecoder(nn.Module):
         return decoder_out
 
 
-import torch
-import torch.nn as nn
-
-
-class RNNDecoder(nn.Module):
-    """GRU-based Decoder network that converts latent vector into output
-    :param in_dim: number of input features
-    :param n_layers: number of layers in RNN
-    :param hid_dim: hidden size of the RNN
-    :param dropout: dropout rate
-    """
-
-    def __init__(self, in_dim, hid_dim, n_layers, dropout):
-        super(RNNDecoder, self).__init__()
-        self.in_dim = in_dim
-        self.dropout = 0.0 if n_layers == 1 else dropout
-        self.rnn = nn.GRU(in_dim, hid_dim, n_layers, batch_first=True, dropout=self.dropout)
-
-    def forward(self, x):
-        decoder_out, _ = self.rnn(x)
-        return decoder_out
-
-
 class ReconstructionModel(nn.Module):
     """Reconstruction Model
     :param window_size: length of the input sequence
@@ -299,9 +276,13 @@ class ReconstructionModel(nn.Module):
     def forward(self, x):
         # x will be the last hidden state of the GRU layer
         h_end = x
-        # Reshape h_end to have shape (batch_size, window_size, in_dim)
-        batch_size = h_end.size(0)
-        h_end_rep = h_end.unsqueeze(1).repeat(1, self.window_size, 1)
+        print("Shape of h_end:", h_end.shape)  # Add this line to check the shape
+
+        # Adjust reshaping based on the shape of h_end
+        if len(h_end.shape) == 2:  # If h_end has shape (batch_size, in_dim)
+            h_end_rep = h_end.unsqueeze(1).repeat(1, self.window_size, 1)
+        elif len(h_end.shape) == 3:  # If h_end has shape (batch_size, seq_len, in_dim)
+            h_end_rep = h_end.repeat(1, self.window_size, 1)
 
         decoder_out = self.decoder(h_end_rep)
         out = self.fc(decoder_out)
