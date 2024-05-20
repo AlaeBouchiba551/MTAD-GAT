@@ -89,18 +89,17 @@ if __name__ == "__main__":
         optimizer,
         window_size,
         n_features,
-        target_dims,
-        n_epochs,
-        batch_size,
-        init_lr,
-        None,
-        recon_criterion,
-        use_cuda,
-        save_path,
-        log_dir,
-        print_every,
-        log_tensorboard,
-        args_summary
+        target_dims=None,  # Corrected argument position
+        n_epochs=n_epochs,
+        batch_size=batch_size,
+        init_lr=init_lr,
+        recon_criterion=recon_criterion,
+        use_cuda=use_cuda,
+        dload="",  # Assuming this argument is optional
+        log_dir=log_dir,
+        print_every=print_every,
+        log_tensorboard=log_tensorboard,
+        args_summary=args_summary
     )
 
     trainer.fit(train_loader, val_loader)
