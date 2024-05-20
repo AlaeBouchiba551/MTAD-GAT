@@ -162,8 +162,7 @@ class Trainer:
 
     def save(self, file_name):
         PATH = os.path.join(self.dload, file_name)
-        if not os.path.exists(self.dload):
-            os.makedirs(self.dload)
+        os.makedirs(os.path.dirname(PATH), exist_ok=True)
         torch.save(self.model.state_dict(), PATH)
 
     def load(self, PATH):
