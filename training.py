@@ -161,8 +161,8 @@ class Trainer:
         return (recon_loss, total_loss)
 
     def save(self, file_name):
-        PATH = os.path.join(self.dload, file_name)
-        os.makedirs(os.path.dirname(PATH), exist_ok=True)
+        os.makedirs(self.dload, exist_ok=True)  # Create directory if it doesn't exist
+        PATH = os.path.join(self.dload, file_name)  # Use os.path.join to create the full file path
         torch.save(self.model.state_dict(), PATH)
 
     def load(self, PATH):
