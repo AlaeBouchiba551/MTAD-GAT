@@ -165,6 +165,7 @@ def plot_losses(losses, save_path="", plot=True):
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
     plt.legend()
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(f"{save_path}/train_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
