@@ -150,7 +150,7 @@ def create_data_loaders(train_dataset, batch_size, val_split=0.1, shuffle=True, 
     return train_loader, val_loader, test_loader
 
 
-import os  # Import os module at the top of utils.py
+import os
 
 
 def plot_losses(losses, save_path="", plot=True):
@@ -171,7 +171,9 @@ def plot_losses(losses, save_path="", plot=True):
 
     # Ensure that the directory structure exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    print("Directory structure created:", os.path.dirname(save_path))
 
+    print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/train_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
@@ -189,7 +191,9 @@ def plot_losses(losses, save_path="", plot=True):
 
     # Ensure that the directory structure exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    print("Directory structure created:", os.path.dirname(save_path))
 
+    print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/validation_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
