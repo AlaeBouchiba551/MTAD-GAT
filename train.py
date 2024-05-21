@@ -101,7 +101,7 @@ if __name__ == "__main__":
     )
 
     trainer.fit(train_loader, val_loader)
-
+    print(trainer.losses)
     plot_losses(trainer.losses, save_path=save_path, plot=False)
 
     # Check test loss

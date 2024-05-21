@@ -156,9 +156,11 @@ def plot_losses(losses, save_path="", plot=True):
     :param save_path: path where plots get saved
     """
 
-    plt.plot(losses["train_forecast"], label="Forecast loss")
-    plt.plot(losses["train_recon"], label="Recon loss")
-    plt.plot(losses["train_total"], label="Total loss")
+    if "train_recon" in losses:
+        plt.plot(losses["train_recon"], label="Recon loss")
+    if "train_total" in losses:
+        plt.plot(losses["train_total"], label="Total loss")
+
     plt.title("Training losses during training")
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
@@ -168,9 +170,11 @@ def plot_losses(losses, save_path="", plot=True):
         plt.show()
     plt.close()
 
-    plt.plot(losses["val_forecast"], label="Forecast loss")
-    plt.plot(losses["val_recon"], label="Recon loss")
-    plt.plot(losses["val_total"], label="Total loss")
+    if "val_recon" in losses:
+        plt.plot(losses["val_recon"], label="Recon loss")
+    if "val_total" in losses:
+        plt.plot(losses["val_total"], label="Total loss")
+
     plt.title("Validation losses during training")
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")

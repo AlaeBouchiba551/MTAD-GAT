@@ -41,9 +41,7 @@ class Trainer:
         self.log_tensorboard = log_tensorboard
 
         self.losses = {
-            "train_total": [],
             "train_recon": [],
-            "val_total": [],
             "val_recon": [],
         }
         self.epoch_times = []
@@ -57,11 +55,11 @@ class Trainer:
 
     def fit(self, train_loader, val_loader=None):
         init_train_loss = self.evaluate(train_loader)
-        print(f"Init total train loss: {init_train_loss[1]:.5f}")
+        print(f"Init total train loss: {init_train_loss:.5f}")
 
         if val_loader is not None:
             init_val_loss = self.evaluate(val_loader)
-            print(f"Init total val loss: {init_val_loss[1]:.5f}")
+            print(f"Init total val loss: {init_val_loss:.5f}")
 
         print(f"Training model for {self.n_epochs} epochs..")
         train_start = time.time()
@@ -91,17 +89,14 @@ class Trainer:
                 recon_b_losses.append(recon_loss.item())
 
             recon_epoch_loss = np.sqrt(np.mean(np.array(recon_b_losses) ** 2))
-            total_epoch_loss = recon_epoch_loss
 
             self.losses["train_recon"].append(recon_epoch_loss)
-            self.losses["train_total"].append(total_epoch_loss)
 
             if val_loader is not None:
-                recon_val_loss, total_val_loss = self.evaluate(val_loader)
+                recon_val_loss = self.evaluate(val_loader)
                 self.losses["val_recon"].append(recon_val_loss)
-                self.losses["val_total"].append(total_val_loss)
 
-                if total_val_loss <= self.losses["val_total"][-1]:
+                if recon_val_loss <= self.losses["val_recon"][-1]:
                     self.save("model.pt")
 
             if self.log_tensorboard:
@@ -113,14 +108,12 @@ class Trainer:
             if epoch % self.print_every == 0:
                 s = (
                     f"[Epoch {epoch + 1}] "
-                    f"recon_loss = {recon_epoch_loss:.5f}, "
-                    f"total_loss = {total_epoch_loss:.5f}"
+                    f"recon_loss = {recon_epoch_loss:.5f}"
                 )
 
                 if val_loader is not None:
                     s += (
-                        f" ---- val_recon_loss = {recon_val_loss:.5f}, "
-                        f"val_total_loss = {total_val_loss:.5f}"
+                        f" ---- val_recon_loss = {recon_val_loss:.5f}"
                     )
 
                 s += f" [{epoch_time:.1f}s]"
@@ -154,9 +147,8 @@ class Trainer:
                 recon_losses.append(recon_loss.item())
 
         recon_loss = np.sqrt(np.mean(np.array(recon_losses) ** 2))
-        total_loss = recon_loss
 
-        return recon_loss, total_loss
+        return recon_loss
 
     def save(self, file_name):
         os.makedirs(self.dload, exist_ok=True)  # Create directory if it doesn't exist
