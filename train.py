@@ -43,10 +43,8 @@ if __name__ == "__main__":
         raise Exception(f'Dataset "{dataset}" not available.')
 
     log_dir = f'{output_path}/logs'
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    os.makedirs(output_path, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
     save_path = f"{output_path}/{id}"
 
     x_train = torch.from_numpy(x_train).float()
@@ -57,7 +55,7 @@ if __name__ == "__main__":
     if target_dims is None:
         out_dim = n_features
         print(f"Will reconstruct all {n_features} input features")
-    elif type(target_dims) == int:
+    elif isinstance(target_dims, int):
         print(f"Will reconstruct input feature: {target_dims}")
         out_dim = 1
     else:
@@ -81,21 +79,21 @@ if __name__ == "__main__":
         dropout=args.dropout
     )
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.init_lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
     recon_criterion = nn.MSELoss()
 
     trainer = Trainer(
-        model,
-        optimizer,
-        window_size,
-        n_features,
+        model=model,
+        optimizer=optimizer,
+        window_size=window_size,
+        n_features=n_features,
         target_dims=target_dims,
         n_epochs=n_epochs,
         batch_size=batch_size,
         init_lr=init_lr,
         recon_criterion=recon_criterion,
         use_cuda=use_cuda,
-        dload="",  # Assuming this argument is optional
+        dload=output_path,  # Assuming this is where the model should be saved
         log_dir=log_dir,
         print_every=print_every,
         log_tensorboard=log_tensorboard,
@@ -108,7 +106,7 @@ if __name__ == "__main__":
 
     # Check test loss
     test_loss = trainer.evaluate(test_loader)
-    print(f"Test reconstruction loss: {test_loss:.5f}")
+    print(f"Test reconstruction loss: {test_loss[1]:.5f}")
 
     # Save config
     args_path = f"{save_path}/config.txt"

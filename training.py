@@ -49,10 +49,10 @@ class Trainer:
         self.epoch_times = []
 
         if self.device == "cuda":
-            self.model.cuda()
+            self.model.to(self.device)
 
         if self.log_tensorboard:
-            self.writer = SummaryWriter(f"{log_dir}")
+            self.writer = SummaryWriter(log_dir)
             self.writer.add_text("args_summary", args_summary)
 
     def fit(self, train_loader, val_loader=None):
@@ -82,7 +82,7 @@ class Trainer:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
 
-                recon_loss = torch.sqrt(self.recon_criterion(x, recons))
+                recon_loss = self.recon_criterion(x, recons)
                 loss = recon_loss
 
                 loss.backward()
@@ -90,8 +90,7 @@ class Trainer:
 
                 recon_b_losses.append(recon_loss.item())
 
-            recon_b_losses = np.array(recon_b_losses)
-            recon_epoch_loss = np.sqrt((recon_b_losses ** 2).mean())
+            recon_epoch_loss = np.sqrt(np.mean(np.array(recon_b_losses) ** 2))
             total_epoch_loss = recon_epoch_loss
 
             self.losses["train_recon"].append(recon_epoch_loss)
@@ -103,7 +102,7 @@ class Trainer:
                 self.losses["val_total"].append(total_val_loss)
 
                 if total_val_loss <= self.losses["val_total"][-1]:
-                    self.save(f"model.pt")
+                    self.save("model.pt")
 
             if self.log_tensorboard:
                 self.write_loss(epoch)
@@ -128,7 +127,7 @@ class Trainer:
                 print(s)
 
         if val_loader is None:
-            self.save(f"model.pt")
+            self.save("model.pt")
 
         train_time = int(time.time() - train_start)
         if self.log_tensorboard:
@@ -151,14 +150,13 @@ class Trainer:
                     x = x[:, :, self.target_dims]
                     y = y[:, :, self.target_dims].squeeze(-1)
 
-                recon_loss = torch.sqrt(self.recon_criterion(x, recons))
+                recon_loss = self.recon_criterion(x, recons)
                 recon_losses.append(recon_loss.item())
 
-        recon_losses = np.array(recon_losses)
-        recon_loss = np.sqrt((recon_losses ** 2).mean())
+        recon_loss = np.sqrt(np.mean(np.array(recon_losses) ** 2))
         total_loss = recon_loss
 
-        return (recon_loss, total_loss)
+        return recon_loss, total_loss
 
     def save(self, file_name):
         os.makedirs(self.dload, exist_ok=True)  # Create directory if it doesn't exist
