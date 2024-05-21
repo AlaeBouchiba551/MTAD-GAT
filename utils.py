@@ -150,6 +150,9 @@ def create_data_loaders(train_dataset, batch_size, val_split=0.1, shuffle=True, 
     return train_loader, val_loader, test_loader
 
 
+import os  # Import os module at the top of utils.py
+
+
 def plot_losses(losses, save_path="", plot=True):
     """
     :param losses: dict with losses
@@ -165,7 +168,10 @@ def plot_losses(losses, save_path="", plot=True):
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
     plt.legend()
+
+    # Ensure that the directory structure exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
     plt.savefig(f"{save_path}/train_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
@@ -180,6 +186,10 @@ def plot_losses(losses, save_path="", plot=True):
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
     plt.legend()
+
+    # Ensure that the directory structure exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
     plt.savefig(f"{save_path}/validation_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
