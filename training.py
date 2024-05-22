@@ -149,7 +149,7 @@ class Trainer:
 
         recon_loss = np.sqrt(np.mean(np.array(recon_losses) ** 2))
 
-        return recon_loss, recon_loss  # Return a tuple with the same value twice
+        return recon_loss  # Ensure that it returns a single value
 
     def save(self, file_name):
         os.makedirs(self.dload, exist_ok=True)  # Create directory if it doesn't exist

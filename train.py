@@ -101,15 +101,19 @@ if __name__ == "__main__":
         args_summary=args_summary
     )
 
+    # After fitting the model
     trainer.fit(train_loader, val_loader)
     print(trainer.losses)
-    plot_losses(trainer.losses, save_path=save_path, plot=False)
 
-    # Check test loss
-    test_recon_loss, _ = trainer.evaluate(test_loader)
+    # Evaluate on test set
+    test_recon_loss = trainer.evaluate(test_loader)
     print(f"Test reconstruction loss: {test_recon_loss:.5f}")
 
-    # Save config
+    # Plot losses
+    plot_losses(trainer.losses, save_path=save_path, plot=False)
+
+    # Save configuration
     args_path = f"{save_path}/config.txt"
     with open(args_path, "w") as f:
         json.dump(args.__dict__, f, indent=2)
+
