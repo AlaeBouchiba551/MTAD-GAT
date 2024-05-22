@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
 import torch.nn as nn
-import os
 import torch
+import os
 
 from args import get_parser
 from utils import *
@@ -46,6 +46,7 @@ if __name__ == "__main__":
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     save_path = f"{output_path}/{id}"
+    os.makedirs(save_path, exist_ok=True)  # Ensure save_path directory is created
 
     x_train = torch.from_numpy(x_train).float()
     x_test = torch.from_numpy(x_test).float()

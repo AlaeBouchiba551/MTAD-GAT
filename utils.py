@@ -152,12 +152,15 @@ def create_data_loaders(train_dataset, batch_size, val_split=0.1, shuffle=True, 
 
 import os
 
-
 def plot_losses(losses, save_path="", plot=True):
     """
     :param losses: dict with losses
     :param save_path: path where plots get saved
+    :param plot: boolean flag to display the plot
     """
+
+    # Ensure the directory exists
+    os.makedirs(save_path, exist_ok=True)
 
     if "train_recon" in losses:
         plt.plot(losses["train_recon"], label="Recon loss")
@@ -169,10 +172,7 @@ def plot_losses(losses, save_path="", plot=True):
     plt.ylabel("RMSE")
     plt.legend()
 
-    # Ensure that the directory structure exists
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    print("Directory structure created:", os.path.dirname(save_path))
-
+    print("Directory structure created:", save_path)
     print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/train_losses.png", bbox_inches="tight")
     if plot:
@@ -189,15 +189,12 @@ def plot_losses(losses, save_path="", plot=True):
     plt.ylabel("RMSE")
     plt.legend()
 
-    # Ensure that the directory structure exists
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    print("Directory structure created:", os.path.dirname(save_path))
-
     print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/validation_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
     plt.close()
+
 
 
 def load(model, PATH, device="cpu"):
