@@ -54,6 +54,7 @@ class Trainer:
             self.writer.add_text("args_summary", args_summary)
 
     def fit(self, train_loader, val_loader=None):
+        # Unpack the initial evaluation losses
         init_train_loss = self.evaluate(train_loader)
         print(f"Init total train loss: {init_train_loss:.5f}")
 
