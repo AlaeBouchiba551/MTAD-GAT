@@ -106,8 +106,8 @@ if __name__ == "__main__":
     plot_losses(trainer.losses, save_path=save_path, plot=False)
 
     # Check test loss
-    test_loss = trainer.evaluate(test_loader)
-    print(f"Test reconstruction loss: {test_loss[1]:.5f}")
+    test_recon_loss, _ = trainer.evaluate(test_loader)
+    print(f"Test reconstruction loss: {test_recon_loss:.5f}")
 
     # Save config
     args_path = f"{save_path}/config.txt"
