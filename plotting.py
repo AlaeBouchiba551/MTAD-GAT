@@ -67,6 +67,31 @@ class Plotter:
         self.train_output = train_output
         self.test_output = test_output
 
+        def result_summary(self):
+            path = f"{self.result_path}/summary.txt"
+            if not os.path.exists(path):
+                print(f"Folder {self.result_path} do not have a summary.txt file")
+                return
+            try:
+                print("Result summary:")
+                with open(path) as f:
+                    result_dict = json.load(f)
+                    epsilon_result = result_dict["epsilon_result"]
+                    pot_result = result_dict["pot_result"]
+                    bf_results = result_dict["bf_result"]
+                    print(f'Epsilon:')
+                    print(
+                        f'\t\tprecision: {epsilon_result["precision"]:.2f}, recall: {epsilon_result["recall"]:.2f}, F1: {epsilon_result["f1"]:.2f}')
+                    print(f'POT:')
+                    print(
+                        f'\t\tprecision: {pot_result["precision"]:.2f}, recall: {pot_result["recall"]:.2f}, F1: {pot_result["f1"]:.2f}')
+                    print(f'Brute-Force:')
+                    print(
+                        f'\t\tprecision: {bf_results["precision"]:.2f}, recall: {bf_results["recall"]:.2f}, F1: {bf_results["f1"]:.2f}')
+
+            except FileNotFoundError as e:
+                print(e)
+
     def create_shapes(self, ranges, sequence_type, _min, _max, plot_values, is_test=True, xref=None, yref=None):
         """
         Create shapes for regions to highlight in plotly (true and predicted anomaly sequences).
