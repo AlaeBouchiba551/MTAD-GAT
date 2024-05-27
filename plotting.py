@@ -157,7 +157,7 @@ class Plotter:
                      end=None):
         """
         Plot forecasting, reconstruction, true value of a specific feature (feature),
-        along with the anomaly score for that feature
+        along with the anomaly score for that feature.
         """
         test_copy = self.test_output.copy()
 
