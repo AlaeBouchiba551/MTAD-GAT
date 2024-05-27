@@ -153,12 +153,12 @@ class Plotter:
 
         return a_seqs
 
-    def plot_feature(self, feature, plot_train=False, plot_errors=True, plot_feature_anom=False, start=None, end=None):
+    def plot_feature(self, feature, plot_train=False, plot_errors=True, plot_feature_anom=False, start=None,
+                     end=None):
         """
         Plot forecasting, reconstruction, true value of a specific feature (feature),
         along with the anomaly score for that feature
         """
-
         test_copy = self.test_output.copy()
 
         if start is not None and end is not None:
@@ -178,14 +178,12 @@ class Plotter:
         for nr, data_copy in enumerate(plot_data):
             is_test = nr == 0
 
-           # if feature < 0 or f"Forecast_{feature}" not in data_copy.columns:
-              #
-    #raise Exception(f"Channel {feature} not present in data.")
+            if feature < 0 or f"Recon_{feature}" not in data_copy.columns:
+                raise Exception(f"Channel {feature} not present in data.")
 
             i = feature
             plot_values = {
                 "timestamp": data_copy["timestamp"].values,
-               # "y_forecast": data_copy[f"Forecast_{i}"].values,
                 "y_recon": data_copy[f"Recon_{i}"].values,
                 "y_true": data_copy[f"True_{i}"].values,
                 "errors": data_copy[f"A_Score_{i}"].values,
@@ -198,101 +196,88 @@ class Plotter:
             }
 
             if is_test and start is not None:
-                anomaly_sequences['pred'] = [[s+start, e+start] for [s, e] in anomaly_sequences['pred']]
-                anomaly_sequences['true'] = [[s+start, e+start] for [s, e] in anomaly_sequences['true']]
+                anomaly_sequences['pred'] = [[s + start, e + start] for [s, e] in anomaly_sequences['pred']]
+                anomaly_sequences['true'] = [[s + start, e + start] for [s, e] in anomaly_sequences['true']]
 
-                y_min = 1.1 * plot_values["y_true"].min()
-                y_max = 1.1 * plot_values["y_true"].max()
-                e_max = 1.5 * plot_values["errors"].max()
+            y_min = 1.1 * plot_values["y_true"].min()
+            y_max = 1.1 * plot_values["y_true"].max()
+            e_max = 1.5 * plot_values["errors"].max()
 
-                y_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", y_min, y_max, plot_values,
-                                              is_test=is_test)
-                e_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", 0, e_max, plot_values,
-                                              is_test=is_test)
-                if self.labels_available and ('SMAP' in self.result_path or 'MSL' in self.result_path):
-                    y_shapes += self.create_shapes(anomaly_sequences["true"], "true", y_min, y_max, plot_values,
-                                                   is_test=is_test)
-                    e_shapes += self.create_shapes(anomaly_sequences["true"], "true", 0, e_max, plot_values,
-                                                   is_test=is_test)
+            y_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", y_min, y_max, plot_values,
+                                          is_test=is_test)
+            e_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", 0, e_max, plot_values,
+                                          is_test=is_test)
+            if self.labels_available and ('SMAP' in self.result_path or 'MSL' in self.result_path):
+                y_shapes += self.create_shapes(anomaly_sequences["true"], "true", y_min, y_max, plot_values,
+                                               is_test=is_test)
+                e_shapes += self.create_shapes(anomaly_sequences["true"], "true", 0, e_max, plot_values,
+                                               is_test=is_test)
 
-                y_df = pd.DataFrame(
-                    {
-                        "timestamp": plot_values["timestamp"].reshape(-1, ),
-                        # "y_forecast": plot_values["y_forecast"].reshape(-1,),
-                        "y_recon": plot_values["y_recon"].reshape(-1, ),
-                        "y_true": plot_values["y_true"].reshape(-1, )
-                    }
-                )
+            y_df = pd.DataFrame({
+                "timestamp": plot_values["timestamp"].reshape(-1, ),
+                "y_recon": plot_values["y_recon"].reshape(-1, ),
+                "y_true": plot_values["y_true"].reshape(-1, )
+            })
 
-                e_df = pd.DataFrame(
-                    {
-                        "timestamp": plot_values["timestamp"],
-                        "e_s": plot_values["errors"].reshape(-1, ),
-                        "threshold": plot_values["threshold"],
-                    }
-                )
+            e_df = pd.DataFrame({
+                "timestamp": plot_values["timestamp"],
+                "e_s": plot_values["errors"].reshape(-1, ),
+                "threshold": plot_values["threshold"],
+            })
 
-                data_type = "Test data" if is_test else "Train data"
-                y_layout = {
-                    "title": f"{data_type} |  reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
-                    "showlegend": True,
-                    "height": 400,
-                    "width": 1100,
-                }
+            data_type = "Test data" if is_test else "Train data"
+            y_layout = {
+                "title": f"{data_type} |  reconstruction vs true value for {self.pred_cols[i] if self.pred_cols is not None else ''} ",
+                "showlegend": True,
+                "height": 400,
+                "width": 1100,
+            }
 
-                e_layout = {
-                    "title": f"{data_type} | Error for {self.pred_cols[i] if self.pred_cols is not None else ''}",
-                    # "yaxis": dict(range=[0, e_max]),
-                    "height": 400,
-                    "width": 1100,
-                }
+            e_layout = {
+                "title": f"{data_type} | Error for {self.pred_cols[i] if self.pred_cols is not None else ''}",
+                "height": 400,
+                "width": 1100,
+            }
 
-                if plot_feature_anom:
-                    y_layout["shapes"] = y_shapes
-                    e_layout["shapes"] = e_shapes
+            if plot_feature_anom:
+                y_layout["shapes"] = y_shapes
+                e_layout["shapes"] = e_shapes
 
-                lines = [
-                    go.Scatter(
-                        x=y_df["timestamp"],
-                        y=y_df["y_true"],
-                        line_color="rgb(0, 204, 150, 0.5)",
-                        name="y_true",
-                        line=dict(width=2)),
-                    # go.Scatter(
-                    # x=y_df["timestamp"],
-                    # y=y_df["y_forecast"],
-                    # line_color="rgb(255, 127, 14, 1)",
-                    # name="y_forecast",
-                    # line=dict(width=2)),
-                    go.Scatter(
-                        x=y_df["timestamp"],
-                        y=y_df["y_recon"],
-                        line_color="rgb(31, 119, 180, 1)",
-                        name="y_recon",
-                        line=dict(width=2)),
-                ]
+            lines = [
+                go.Scatter(
+                    x=y_df["timestamp"],
+                    y=y_df["y_true"],
+                    line_color="rgb(0, 204, 150, 0.5)",
+                    name="y_true",
+                    line=dict(width=2)),
+                go.Scatter(
+                    x=y_df["timestamp"],
+                    y=y_df["y_recon"],
+                    line_color="rgb(31, 119, 180, 1)",
+                    name="y_recon",
+                    line=dict(width=2)),
+            ]
 
-                fig = go.Figure(data=lines, layout=y_layout)
-                py.offline.iplot(fig)
+            fig = go.Figure(data=lines, layout=y_layout)
+            py.offline.iplot(fig)
 
-                e_lines = [
+            e_lines = [
+                go.Scatter(
+                    x=e_df["timestamp"],
+                    y=e_df["e_s"],
+                    name="Error",
+                    line=dict(color="red", width=1))]
+            if plot_feature_anom:
+                e_lines.append(
                     go.Scatter(
                         x=e_df["timestamp"],
-                        y=e_df["e_s"],
-                        name="Error",
-                        line=dict(color="red", width=1))]
-                if plot_feature_anom:
-                    e_lines.append(
-                        go.Scatter(
-                            x=e_df["timestamp"],
-                            y=e_df["threshold"],
-                            name="Threshold",
-                            line=dict(color="black", width=1, dash="dash")))
+                        y=e_df["threshold"],
+                        name="Threshold",
+                        line=dict(color="black", width=1, dash="dash")))
 
-                if plot_errors:
-                    e_fig = go.Figure(data=e_lines, layout=e_layout)
-                    py.offline.iplot(e_fig)
-
+            if plot_errors:
+                e_fig = go.Figure(data=e_lines, layout=e_layout)
+                py.offline.iplot(e_fig)
         def plot_all_features(self, start=None, end=None, type="test"):
             """
             Plotting all features, using the following order:
