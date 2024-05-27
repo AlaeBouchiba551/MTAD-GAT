@@ -7,6 +7,7 @@ import plotly.graph_objs as go
 import plotly as py
 import cufflinks as cf
 from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
 
 cf.go_offline()
 
@@ -427,6 +428,9 @@ class Plotter:
         py.offline.iplot(fig)
 
     def plot_global_predictions(self, type="test"):
+        """
+        Plot global anomaly scores and threshold for test or train data.
+        """
         if type == "test":
             data_copy = self.test_output.copy()
         else:
@@ -439,14 +443,17 @@ class Plotter:
         )
         axs[0].plot(data_copy[f"A_Score_Global"], c="r", label="anomaly scores")
         axs[0].plot(data_copy["Thresh_Global"], linestyle="dashed", c="black", label="threshold")
-        axs[1].plot(data_copy["A_Pred_Global"], label="predicted anomalies", c="orange")
-        if self.labels_available and type == "test":
-            axs[2].plot(
-                data_copy["A_True_Global"],
-                label="actual anomalies",
-            )
-        axs[0].set_ylim([0, 5 * np.mean(data_copy["Thresh_Global"].values)])
-        fig.legend(prop={"size": 20})
+        axs[0].legend()
+        axs[0].set_title(f"Global Anomaly Scores and Threshold ({type})")
+
+        axs[1].plot(data_copy["timestamp"], data_copy[f"A_Pred_Global"], c="r", label="predicted anomalies")
+        axs[1].legend()
+        axs[1].set_title(f"Global Predicted Anomalies ({type})")
+
+        axs[2].plot(data_copy["timestamp"], data_copy["A_True_Global"], c="r", label="true anomalies")
+        axs[2].legend()
+        axs[2].set_title(f"Global True Anomalies ({type})")
+
         plt.show()
 
     def plotly_global_predictions(self, type="test"):
