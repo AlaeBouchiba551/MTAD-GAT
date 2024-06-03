@@ -1,10 +1,8 @@
 import json
 from tqdm import tqdm
-import torch
-import pandas as pd
-import numpy as np
 from eval_methods import *
 from utils import *
+
 
 class Predictor:
     """MTAD-GAT predictor class.
@@ -12,7 +10,7 @@ class Predictor:
     :param model: MTAD-GAT model (pre-trained) used to forecast and reconstruct
     :param window_size: Length of the input sequence
     :param n_features: Number of input features
-    :param pred_args: Params for thresholding and predicting anomalies
+    :param pred_args: params for thresholding and predicting anomalies
 
     """
 
@@ -112,7 +110,7 @@ class Predictor:
             print("Loading anomaly scores")
 
             train_pred_df = pd.read_pickle(f"{self.save_path}/train_output.pkl")
-            test_pred_df = pd.read_pickle(f"{self.save_path}/test_output.pkl")f
+            test_pred_df = pd.read_pickle(f"{self.save_path}/test_output.pkl")
 
             train_anomaly_scores = train_pred_df['A_Score_Global'].values
             test_anomaly_scores = test_pred_df['A_Score_Global'].values
@@ -157,7 +155,7 @@ class Predictor:
 
         # Global anomalies (entity-level) are predicted using aggregation of anomaly scores across all features
         # These predictions are used to evaluate performance, as true anomalies are labeled at entity-level
-        # Evaluate using different threshold methods: brute-force, epsilon and peaks-over-threshold
+        # Evaluate using different threshold methods: brute-force, epsilon and peaks-over-treshold
         e_eval = epsilon_eval(train_anomaly_scores, test_anomaly_scores, true_anomalies, reg_level=self.reg_level)
         p_eval = pot_eval(train_anomaly_scores, test_anomaly_scores, true_anomalies,
                           q=self.q, level=self.level, dynamic=self.dynamic_pot)
@@ -202,4 +200,3 @@ class Predictor:
             test_pred_df.to_pickle(f"{self.save_path}/test_output.pkl")
 
         print("-- Done.")
-

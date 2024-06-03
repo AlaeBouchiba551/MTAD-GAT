@@ -150,51 +150,35 @@ def create_data_loaders(train_dataset, batch_size, val_split=0.1, shuffle=True, 
     return train_loader, val_loader, test_loader
 
 
-import os
-
 def plot_losses(losses, save_path="", plot=True):
     """
     :param losses: dict with losses
     :param save_path: path where plots get saved
-    :param plot: boolean flag to display the plot
     """
 
-    # Ensure the directory exists
-    os.makedirs(save_path, exist_ok=True)
-
-    if "train_recon" in losses:
-        plt.plot(losses["train_recon"], label="Recon loss")
-    if "train_total" in losses:
-        plt.plot(losses["train_total"], label="Total loss")
-
+    plt.plot(losses["train_forecast"], label="Forecast loss")
+    plt.plot(losses["train_recon"], label="Recon loss")
+    plt.plot(losses["train_total"], label="Total loss")
     plt.title("Training losses during training")
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
     plt.legend()
-
-    print("Directory structure created:", save_path)
-    print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/train_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
     plt.close()
 
-    if "val_recon" in losses:
-        plt.plot(losses["val_recon"], label="Recon loss")
-    if "val_total" in losses:
-        plt.plot(losses["val_total"], label="Total loss")
-
+    plt.plot(losses["val_forecast"], label="Forecast loss")
+    plt.plot(losses["val_recon"], label="Recon loss")
+    plt.plot(losses["val_total"], label="Total loss")
     plt.title("Validation losses during training")
     plt.xlabel("Epoch")
     plt.ylabel("RMSE")
     plt.legend()
-
-    print("Saving plot to:", save_path)
     plt.savefig(f"{save_path}/validation_losses.png", bbox_inches="tight")
     if plot:
         plt.show()
     plt.close()
-
 
 
 def load(model, PATH, device="cpu"):
