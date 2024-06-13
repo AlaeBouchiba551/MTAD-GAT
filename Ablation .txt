@@ -1,0 +1,27 @@
+SMAP : 
+MTAD : 0.9015
+W/o feature : 0.8790
+W/o time : 0.8700
+W/o prediction : 0.8731
+W/o reconstruction : 0.8352
+
+MSL :  
+MTAD : 0.9090
+W/o feature : 0.8860
+W/o time : 0.8979
+W/o prediction : 0.8660
+W/o reconstruction : 0.8053
+
+TSA:  
+MTAD : 0.7994
+W/o feature : 0.7415
+W/o time : 0.7564
+W/o prediction : 0.7490
+W/o reconstruction : 0.8053
+
+SMD : 
+MTAD : 
+W/o feature : -
+W/o time : -
+W/o prediction : -
+W/o reconstruction : 0.86
