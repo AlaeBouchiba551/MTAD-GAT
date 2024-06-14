@@ -149,4 +149,35 @@ if __name__ == "__main__":
         q = args.q
 
     # Some suggestions for Epsilon args
-    reg_level_dict = {"SMAP": 0, "MSL": 0, "SMD-1": 1
+    reg_level_dict = {"SMAP": 0, "MSL": 0, "SMD-1": 1, "SMD-2": 1, "SMD-3": 1}
+    key = "SMD-" + args.group[0] if dataset == "SMD" else dataset
+    reg_level = reg_level_dict[key]
+
+    trainer.load(f"{save_path}/model.pt")
+    prediction_args = {
+        'dataset': dataset,
+        "target_dims": target_dims,
+        'scale_scores': args.scale_scores,
+        "level": level,
+        "q": q,
+        'dynamic_pot': args.dynamic_pot,
+        "use_mov_av": args.use_mov_av,
+        "gamma": args.gamma,
+        "reg_level": reg_level,
+        "save_path": save_path,
+    }
+    best_model = trainer.model
+    predictor = Predictor(
+        best_model,
+        window_size,
+        n_features,
+        prediction_args,
+    )
+
+    label = y_test[window_size:] if y_test is not None else None
+    predictor.predict_anomalies(x_train, x_test, label)
+
+    # Save config
+    args_path = f"{save_path}/config.txt"
+    with open(args_path, "w") as f:
+        json.dump(args.__dict__, f, indent=2)
