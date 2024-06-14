@@ -1,6 +1,5 @@
 import argparse
 
-
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -11,7 +10,6 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
 
-
 def get_parser():
     parser = argparse.ArgumentParser()
 
@@ -21,6 +19,8 @@ def get_parser():
     parser.add_argument("--lookback", type=int, default=100)
     parser.add_argument("--normalize", type=str2bool, default=True)
     parser.add_argument("--spec_res", type=str2bool, default=False)
+    parser.add_argument("--start_index", type=int, default=0, help="Start index for the specific window")
+    parser.add_argument("--end_index", type=int, default=-1, help="End index for the specific window")
 
     # -- Model params ---
     # 1D conv layer

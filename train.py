@@ -1,13 +1,13 @@
 import json
 from datetime import datetime
 import torch.nn as nn
-
+import os
+import torch
 from args import get_parser
-from utils import *
+from utils import get_data, get_target_dims, SlidingWindowDataset, create_data_loaders, plot_losses
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
-
 
 if __name__ == "__main__":
 
@@ -33,6 +33,9 @@ if __name__ == "__main__":
     args_summary = str(args.__dict__)
     print(args_summary)
 
+    start_index = args.start_index
+    end_index = args.end_index
+
     if dataset == 'SMD':
         output_path = f'output/SMD/{args.group}'
         (x_train, _), (x_test, y_test) = get_data(f"machine-{group_index}-{index}", normalize=normalize)
@@ -41,6 +44,14 @@ if __name__ == "__main__":
         (x_train, _), (x_test, y_test) = get_data(dataset, normalize=normalize)
     else:
         raise Exception(f'Dataset "{dataset}" not available.')
+
+    # Slice the dataset according to the specified window
+    if end_index == -1:
+        end_index = len(x_train)
+
+    x_train = x_train[start_index:end_index]
+    if y_test is not None:
+        y_test = y_test[start_index:end_index]
 
     log_dir = f'{output_path}/logs'
     if not os.path.exists(output_path):
@@ -138,35 +149,4 @@ if __name__ == "__main__":
         q = args.q
 
     # Some suggestions for Epsilon args
-    reg_level_dict = {"SMAP": 0, "MSL": 0, "SMD-1": 1, "SMD-2": 1, "SMD-3": 1}
-    key = "SMD-" + args.group[0] if dataset == "SMD" else dataset
-    reg_level = reg_level_dict[key]
-
-    trainer.load(f"{save_path}/model.pt")
-    prediction_args = {
-        'dataset': dataset,
-        "target_dims": target_dims,
-        'scale_scores': args.scale_scores,
-        "level": level,
-        "q": q,
-        'dynamic_pot': args.dynamic_pot,
-        "use_mov_av": args.use_mov_av,
-        "gamma": args.gamma,
-        "reg_level": reg_level,
-        "save_path": save_path,
-    }
-    best_model = trainer.model
-    predictor = Predictor(
-        best_model,
-        window_size,
-        n_features,
-        prediction_args,
-    )
-
-    label = y_test[window_size:] if y_test is not None else None
-    predictor.predict_anomalies(x_train, x_test, label)
-
-    # Save config
-    args_path = f"{save_path}/config.txt"
-    with open(args_path, "w") as f:
-        json.dump(args.__dict__, f, indent=2)
+    reg_level_dict = {"SMAP": 0, "MSL": 0, "SMD-1": 1
