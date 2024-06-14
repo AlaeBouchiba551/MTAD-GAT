@@ -173,12 +173,14 @@ if __name__ == "__main__":
 
     # Ensure the lengths are matched
     label = y_test[window_size:] if y_test is not None else None
-    print(f"Length of test scores: {len(predictor.test_anomaly_scores)}")
-    print(f"Length of test labels: {len(label)}")
-    if len(predictor.test_anomaly_scores) != len(label):
-        raise ValueError("The length of test anomaly scores and true anomalies must be the same.")
 
     predictor.predict_anomalies(x_train, x_test, label)
+    test_anomaly_scores = predictor.test_anomaly_scores
+
+    print(f"Length of test scores: {len(test_anomaly_scores)}")
+    print(f"Length of test labels: {len(label)}")
+    if len(test_anomaly_scores) != len(label):
+        raise ValueError("The length of test anomaly scores and true anomalies must be the same.")
 
     # Save config
     args_path = f"{save_path}/config.txt"
