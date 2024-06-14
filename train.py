@@ -3,8 +3,9 @@ from datetime import datetime
 import torch.nn as nn
 import os
 import torch
+
 from args import get_parser
-from utils import get_data, get_target_dims, SlidingWindowDataset, create_data_loaders, plot_losses
+from utils import *
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
@@ -31,10 +32,9 @@ if __name__ == "__main__":
     group_index = args.group[0]
     index = args.group[2:]
     args_summary = str(args.__dict__)
-    print(args_summary)
-
     start_index = args.start_index
     end_index = args.end_index
+    print(args_summary)
 
     if dataset == 'SMD':
         output_path = f'output/SMD/{args.group}'
@@ -44,14 +44,6 @@ if __name__ == "__main__":
         (x_train, _), (x_test, y_test) = get_data(dataset, normalize=normalize)
     else:
         raise Exception(f'Dataset "{dataset}" not available.')
-
-    # Slice the dataset according to the specified window
-    if end_index == -1:
-        end_index = len(x_train)
-
-    x_train = x_train[start_index:end_index]
-    if y_test is not None:
-        y_test = y_test[start_index:end_index]
 
     log_dir = f'{output_path}/logs'
     if not os.path.exists(output_path):
@@ -74,6 +66,11 @@ if __name__ == "__main__":
     else:
         print(f"Will forecast and reconstruct input features: {target_dims}")
         out_dim = len(target_dims)
+
+    # Ensure correct slicing
+    x_train = x_train[start_index:end_index]
+    x_test = x_test[start_index:end_index]
+    y_test = y_test[start_index:end_index] if y_test is not None else None
 
     train_dataset = SlidingWindowDataset(x_train, window_size, target_dims)
     test_dataset = SlidingWindowDataset(x_test, window_size, target_dims)
@@ -174,7 +171,13 @@ if __name__ == "__main__":
         prediction_args,
     )
 
+    # Ensure the lengths are matched
     label = y_test[window_size:] if y_test is not None else None
+    print(f"Length of test scores: {len(predictor.test_anomaly_scores)}")
+    print(f"Length of test labels: {len(label)}")
+    if len(predictor.test_anomaly_scores) != len(label):
+        raise ValueError("The length of test anomaly scores and true anomalies must be the same.")
+
     predictor.predict_anomalies(x_train, x_test, label)
 
     # Save config
