@@ -1773,23 +1773,27 @@ class bidSPOT:
         Parameters
         ----------
         fun : function
-                scalar function
+            Scalar function
         jac : function
-                first order derivative of the function
+            First order derivative of the function
         bounds : tuple
-                (min,max) interval for the roots search
+            (min, max) interval for the roots search
         npoints : int
-                maximum number of roots to output
+            Maximum number of roots to output
         method : str
-                'regular' : regular sample of the search interval, 'random' : uniform (distribution) sample of the search interval
+            'regular' : regular sample of the search interval, 'random' : uniform (distribution) sample of the search interval
 
         Returns
         ----------
         numpy.array
-                possible roots of the function
+            Possible roots of the function
         """
         if method == "regular":
+            if bounds[0] >= bounds[1]:
+                raise ValueError(f"Invalid bounds {bounds} for np.arange in _rootsFinder.")
             step = (bounds[1] - bounds[0]) / (npoints + 1)
+            if step <= 0:
+                raise ValueError(f"Invalid step {step} for np.arange in _rootsFinder.")
             X0 = np.arange(bounds[0] + step, bounds[1], step)
         elif method == "random":
             X0 = np.random.uniform(bounds[0], bounds[1], npoints)
@@ -1797,12 +1801,10 @@ class bidSPOT:
         def objFun(X, f, jac):
             g = 0
             j = np.zeros(X.shape)
-            i = 0
-            for x in X:
+            for i, x in enumerate(X):
                 fx = f(x)
-                g = g + fx ** 2
+                g += fx ** 2
                 j[i] = 2 * fx * jac(x)
-                i = i + 1
             return g, j
 
         opt = minimize(
