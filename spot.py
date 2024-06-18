@@ -1883,7 +1883,11 @@ class bidSPOT:
             jac_vs = (1 / t) * (-vs + np.mean(1 / s ** 2))
             return us * jac_vs + vs * jac_us
 
-        Ym = np.min(self.peaks[side])  # Ensure you use np.min to handle empty array correctly
+        try:
+            Ym = np.min(self.peaks[side])  # Ensure you use np.min to handle empty array correctly
+        except ValueError:
+            Ym = 0.0  # Handle case where np.min fails due to empty array
+
         YM = np.max(self.peaks[side])
         Ymean = np.mean(self.peaks[side])
 
