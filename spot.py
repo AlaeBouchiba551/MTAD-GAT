@@ -1856,12 +1856,14 @@ class bidSPOT:
             Maximum number of candidates for maximum likelihood (default : 10)
         Returns
         ----------
-        gamma_best,sigma_best,ll_best
+        gamma_best, sigma_best, ll_best
             Gamma estimates, sigma estimates and corresponding log-likelihood
         """
+
+        # Check if self.peaks[side] is empty
         if len(self.peaks[side]) == 0:
-            # Handle case where there are no peaks detected
-            return 0.0, 1.0, -np.inf  # Return default values or handle appropriately
+            print(f"Debug: No peaks detected in side {side}.")
+            return 0.0, 1.0, -np.inf  # Default values indicating no valid peaks
 
         def u(s):
             return 1 + np.log(s).mean()
@@ -1885,11 +1887,11 @@ class bidSPOT:
 
         try:
             Ym = np.min(self.peaks[side])  # Ensure you use np.min to handle empty array correctly
+            YM = np.max(self.peaks[side])
+            Ymean = np.mean(self.peaks[side])
         except ValueError:
-            Ym = 0.0  # Handle case where np.min fails due to empty array
-
-        YM = np.max(self.peaks[side])
-        Ymean = np.mean(self.peaks[side])
+            print(f"Debug: Unable to compute min/max of an empty array in side {side}.")
+            return 0.0, 1.0, -np.inf
 
         a = -1 / YM
         if abs(a) < 2 * epsilon:
@@ -1900,31 +1902,34 @@ class bidSPOT:
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
         # We look for possible roots
-        left_zeros = biSPOT._rootsFinder(
-            lambda t: w(self.peaks[side], t),
-            lambda t: jac_w(self.peaks[side], t),
-            (a + epsilon, -epsilon),
-            n_points,
-            "regular",
-        )
-
-        right_zeros = biSPOT._rootsFinder(
-            lambda t: w(self.peaks[side], t),
-            lambda t: jac_w(self.peaks[side], t),
-            (b, c),
-            n_points,
-            "regular",
-        )
+        try:
+            left_zeros = biSPOT._rootsFinder(
+                lambda t: w(self.peaks[side], t),
+                lambda t: jac_w(self.peaks[side], t),
+                (a + epsilon, -epsilon),
+                n_points,
+                "regular",
+            )
+            right_zeros = biSPOT._rootsFinder(
+                lambda t: w(self.peaks[side], t),
+                lambda t: jac_w(self.peaks[side], t),
+                (b, c),
+                n_points,
+                "regular",
+            )
+        except ValueError as e:
+            print(f"Debug: Error finding roots: {e}")
+            return 0.0, 1.0, -np.inf
 
         # All the possible roots
         zeros = np.concatenate((left_zeros, right_zeros))
 
-        # 0 is always a solution so we initialize with it
+        # Initialize with 0 solution
         gamma_best = 0
         sigma_best = Ymean
         ll_best = biSPOT._log_likelihood(self.peaks[side], gamma_best, sigma_best)
 
-        # We look for better candidates
+        # Look for better candidates
         for z in zeros:
             gamma = u(1 + z * self.peaks[side]) - 1
             sigma = gamma / z
