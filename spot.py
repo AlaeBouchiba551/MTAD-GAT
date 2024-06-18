@@ -1283,7 +1283,7 @@ class dSPOT:
                 raise ValueError(f"Invalid bounds {bounds} for np.arange in _rootsFinder.")
             step = (bounds[1] - bounds[0]) / (npoints + 1)
             if step <= 0:
-                raise ValueError(f"Invalid step {step} for np.arange in _rootsFinder.")
+                step = 1e-8  # Use a small default step if step calculation is invalid
             X0 = np.arange(bounds[0] + step, bounds[1], step)
         elif method == "random":
             X0 = np.random.uniform(bounds[0], bounds[1], npoints)
