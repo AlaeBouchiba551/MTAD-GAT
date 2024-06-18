@@ -1883,9 +1883,9 @@ class bidSPOT:
             jac_vs = (1 / t) * (-vs + np.mean(1 / s ** 2))
             return us * jac_vs + vs * jac_us
 
-        Ym = self.peaks[side].min()
-        YM = self.peaks[side].max()
-        Ymean = self.peaks[side].mean()
+        Ym = np.min(self.peaks[side])  # Ensure you use np.min to handle empty array correctly
+        YM = np.max(self.peaks[side])
+        Ymean = np.mean(self.peaks[side])
 
         a = -1 / YM
         if abs(a) < 2 * epsilon:
