@@ -1860,10 +1860,15 @@ class bidSPOT:
             Gamma estimates, sigma estimates and corresponding log-likelihood
         """
 
-        # Check if self.peaks[side] is empty
-        if len(self.peaks[side]) == 0:
-            print(f"Debug: No peaks detected in side {side}.")
+        # Check if self.peaks[side] is empty or None
+        if self.peaks is None or len(self.peaks[side]) == 0:
+            print(f"Debug: No peaks detected in side {side} or self.peaks is None.")
             return 0.0, 1.0, -np.inf  # Default values indicating no valid peaks
+
+        # Check if self.peaks[side] contains NaN or Inf values
+        if np.any(np.isnan(self.peaks[side])) or np.any(np.isinf(self.peaks[side])):
+            print(f"Debug: NaN or Inf values detected in side {side}.")
+            return 0.0, 1.0, -np.inf  # Default values indicating invalid peaks
 
         def u(s):
             return 1 + np.log(s).mean()
@@ -1890,7 +1895,7 @@ class bidSPOT:
             YM = np.max(self.peaks[side])
             Ymean = np.mean(self.peaks[side])
         except ValueError:
-            print(f"Debug: Unable to compute min/max of an empty array in side {side}.")
+            print(f"Debug: Unable to compute min/max/mean of peaks in side {side}.")
             return 0.0, 1.0, -np.inf
 
         a = -1 / YM
