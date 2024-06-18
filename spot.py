@@ -1844,21 +1844,24 @@ class bidSPOT:
             L = n * (1 + log(Y.mean()))
         return L
 
-    def _grimshaw(self, side, epsilon=1e-8, n_points=8):
+    def _grimshaw(self, side, epsilon=1e-8, n_points=10):
         """
         Compute the GPD parameters estimation with the Grimshaw's trick
 
         Parameters
         ----------
         epsilon : float
-                numerical parameter to perform (default : 1e-8)
+            Numerical parameter to perform (default : 1e-8)
         n_points : int
-                maximum number of candidates for maximum likelihood (default : 10)
+            Maximum number of candidates for maximum likelihood (default : 10)
         Returns
         ----------
         gamma_best,sigma_best,ll_best
-                gamma estimates, sigma estimates and corresponding log-likelihood
+            Gamma estimates, sigma estimates and corresponding log-likelihood
         """
+        if len(self.peaks[side]) == 0:
+            # Handle case where there are no peaks detected
+            return 0.0, 1.0, -np.inf  # Return default values or handle appropriately
 
         def u(s):
             return 1 + np.log(s).mean()
@@ -1893,7 +1896,7 @@ class bidSPOT:
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
         # We look for possible roots
-        left_zeros = bidSPOT._rootsFinder(
+        left_zeros = biSPOT._rootsFinder(
             lambda t: w(self.peaks[side], t),
             lambda t: jac_w(self.peaks[side], t),
             (a + epsilon, -epsilon),
@@ -1901,7 +1904,7 @@ class bidSPOT:
             "regular",
         )
 
-        right_zeros = bidSPOT._rootsFinder(
+        right_zeros = biSPOT._rootsFinder(
             lambda t: w(self.peaks[side], t),
             lambda t: jac_w(self.peaks[side], t),
             (b, c),
@@ -1909,19 +1912,19 @@ class bidSPOT:
             "regular",
         )
 
-        # all the possible roots
+        # All the possible roots
         zeros = np.concatenate((left_zeros, right_zeros))
 
         # 0 is always a solution so we initialize with it
         gamma_best = 0
         sigma_best = Ymean
-        ll_best = bidSPOT._log_likelihood(self.peaks[side], gamma_best, sigma_best)
+        ll_best = biSPOT._log_likelihood(self.peaks[side], gamma_best, sigma_best)
 
-        # we look for better candidates
+        # We look for better candidates
         for z in zeros:
             gamma = u(1 + z * self.peaks[side]) - 1
             sigma = gamma / z
-            ll = bidSPOT._log_likelihood(self.peaks[side], gamma, sigma)
+            ll = biSPOT._log_likelihood(self.peaks[side], gamma, sigma)
             if ll > ll_best:
                 gamma_best = gamma
                 sigma_best = sigma
