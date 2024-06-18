@@ -853,6 +853,9 @@ class biSPOT:
         b = 2 * (Ymean - Ym) / (Ymean * Ym)
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
+        # Debugging lines to see the values
+        print(f"a: {a}, b: {b}, c: {c}, epsilon: {epsilon}")
+
         # We look for possible roots
         left_zeros = biSPOT._rootsFinder(
             lambda t: w(self.peaks[side], t),
