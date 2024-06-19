@@ -13,8 +13,6 @@ if __name__ == "__main__":
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
 
     parser = get_parser()
-    parser.add_argument("--start_index", type=int, default=0, help="Start index for the training window")
-    parser.add_argument("--end_index", type=int, default=-1, help="End index for the training window")
     args = parser.parse_args()
 
     dataset = args.dataset
