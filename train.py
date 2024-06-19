@@ -3,19 +3,18 @@ from datetime import datetime
 import torch.nn as nn
 import os
 import torch
-
 from args import get_parser
 from utils import *
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
-import argparse
 
 if __name__ == "__main__":
-
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
 
     parser = get_parser()
+    parser.add_argument("--start_index", type=int, default=0, help="Start index for the training window")
+    parser.add_argument("--end_index", type=int, default=-1, help="End index for the training window")
     args = parser.parse_args()
 
     dataset = args.dataset
@@ -69,6 +68,8 @@ if __name__ == "__main__":
         out_dim = len(target_dims)
 
     # Ensure correct slicing
+    if end_index == -1:
+        end_index = len(x_train)
     x_train = x_train[start_index:end_index]
     x_test = x_test[start_index:end_index]
     y_test = y_test[start_index:end_index] if y_test is not None else None
