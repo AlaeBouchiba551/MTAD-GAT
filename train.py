@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    dataset = args.dataset.lower()  # Ensure dataset name is lowercased for consistency
+    dataset = args.dataset.upper()  # Convert dataset name to uppercase
     window_size = args.lookback
     spec_res = args.spec_res
     normalize = args.normalize
@@ -35,12 +35,12 @@ if __name__ == "__main__":
     end_index = args.end_index
     print(args_summary)
 
-    if dataset == 'smd':
+    if dataset == 'SMD':
         output_path = f'output/SMD/{args.group}'
         (x_train, _), (x_test, y_test) = get_data(f"machine-{group_index}-{index}", normalize=normalize)
-    elif dataset in ['msl', 'smap']:
-        output_path = f'output/{dataset.upper()}'
-        (x_train, _), (x_test, y_test) = get_data(dataset.upper(), normalize=normalize)
+    elif dataset in ['MSL', 'SMAP']:
+        output_path = f'output/{dataset}'
+        (x_train, _), (x_test, y_test) = get_data(dataset, normalize=normalize)
     else:
         raise Exception(f'Dataset "{dataset}" not available.')
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     x_test = torch.from_numpy(x_test).float()
     n_features = x_train.shape[1]
 
-    target_dims = get_target_dims(dataset)
+    target_dims = get_target_dims(dataset)  # Now should recognize the dataset correctly
     if target_dims is None:
         out_dim = n_features
         print(f"Will forecast and reconstruct all {n_features} input features")
