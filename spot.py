@@ -244,11 +244,6 @@ class SPOT:
         """
         if method == "regular":
             step = (bounds[1] - bounds[0]) / (npoints + 1)
-            print(f"Bounds: {bounds}, Step: {step}")  # Debugging line
-
-            if step <= 0 or bounds[0] >= bounds[1]:
-                raise ValueError(f"Invalid bounds {bounds} or step {step} for np.arange in _rootsFinder.")
-
             X0 = np.arange(bounds[0] + step, bounds[1], step)
         elif method == "random":
             X0 = np.random.uniform(bounds[0], bounds[1], npoints)
@@ -853,9 +848,6 @@ class biSPOT:
         b = 2 * (Ymean - Ym) / (Ymean * Ym)
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
-        # Debugging lines to see the values
-        print(f"a: {a}, b: {b}, c: {c}, epsilon: {epsilon}")
-
         # We look for possible roots
         left_zeros = biSPOT._rootsFinder(
             lambda t: w(self.peaks[side], t),
@@ -1279,11 +1271,7 @@ class dSPOT:
                 possible roots of the function
         """
         if method == "regular":
-            if bounds[0] >= bounds[1]:
-                raise ValueError(f"Invalid bounds {bounds} for np.arange in _rootsFinder.")
             step = (bounds[1] - bounds[0]) / (npoints + 1)
-            if step <= 0:
-                step = 1e-8  # Use a small default step if step calculation is invalid
             X0 = np.arange(bounds[0] + step, bounds[1], step)
         elif method == "random":
             X0 = np.random.uniform(bounds[0], bounds[1], npoints)
@@ -1291,10 +1279,12 @@ class dSPOT:
         def objFun(X, f, jac):
             g = 0
             j = np.zeros(X.shape)
-            for i, x in enumerate(X):
+            i = 0
+            for x in X:
                 fx = f(x)
-                g += fx ** 2
+                g = g + fx ** 2
                 j[i] = 2 * fx * jac(x)
+                i = i + 1
             return g, j
 
         opt = minimize(
@@ -1773,27 +1763,23 @@ class bidSPOT:
         Parameters
         ----------
         fun : function
-            Scalar function
+                scalar function
         jac : function
-            First order derivative of the function
+                first order derivative of the function
         bounds : tuple
-            (min, max) interval for the roots search
+                (min,max) interval for the roots search
         npoints : int
-            Maximum number of roots to output
+                maximum number of roots to output
         method : str
-            'regular' : regular sample of the search interval, 'random' : uniform (distribution) sample of the search interval
+                'regular' : regular sample of the search interval, 'random' : uniform (distribution) sample of the search interval
 
         Returns
         ----------
         numpy.array
-            Possible roots of the function
+                possible roots of the function
         """
         if method == "regular":
-            if bounds[0] >= bounds[1]:
-                raise ValueError(f"Invalid bounds {bounds} for np.arange in _rootsFinder.")
             step = (bounds[1] - bounds[0]) / (npoints + 1)
-            if step <= 0:
-                raise ValueError(f"Invalid step {step} for np.arange in _rootsFinder.")
             X0 = np.arange(bounds[0] + step, bounds[1], step)
         elif method == "random":
             X0 = np.random.uniform(bounds[0], bounds[1], npoints)
@@ -1801,10 +1787,12 @@ class bidSPOT:
         def objFun(X, f, jac):
             g = 0
             j = np.zeros(X.shape)
-            for i, x in enumerate(X):
+            i = 0
+            for x in X:
                 fx = f(x)
-                g += fx ** 2
+                g = g + fx ** 2
                 j[i] = 2 * fx * jac(x)
+                i = i + 1
             return g, j
 
         opt = minimize(
@@ -1844,31 +1832,21 @@ class bidSPOT:
             L = n * (1 + log(Y.mean()))
         return L
 
-    def _grimshaw(self, side, epsilon=1e-8, n_points=10):
+    def _grimshaw(self, side, epsilon=1e-8, n_points=8):
         """
         Compute the GPD parameters estimation with the Grimshaw's trick
 
         Parameters
         ----------
         epsilon : float
-            Numerical parameter to perform (default : 1e-8)
+                numerical parameter to perform (default : 1e-8)
         n_points : int
-            Maximum number of candidates for maximum likelihood (default : 10)
+                maximum number of candidates for maximum likelihood (default : 10)
         Returns
         ----------
-        gamma_best, sigma_best, ll_best
-            Gamma estimates, sigma estimates and corresponding log-likelihood
+        gamma_best,sigma_best,ll_best
+                gamma estimates, sigma estimates and corresponding log-likelihood
         """
-
-        # Check if self.peaks[side] is empty or None
-        if self.peaks is None or len(self.peaks[side]) == 0:
-            print(f"Debug: No peaks detected in side {side} or self.peaks is None.")
-            return 0.0, 1.0, -np.inf  # Default values indicating no valid peaks
-
-        # Check if self.peaks[side] contains NaN or Inf values
-        if np.any(np.isnan(self.peaks[side])) or np.any(np.isinf(self.peaks[side])):
-            print(f"Debug: NaN or Inf values detected in side {side}.")
-            return 0.0, 1.0, -np.inf  # Default values indicating invalid peaks
 
         def u(s):
             return 1 + np.log(s).mean()
@@ -1890,13 +1868,9 @@ class bidSPOT:
             jac_vs = (1 / t) * (-vs + np.mean(1 / s ** 2))
             return us * jac_vs + vs * jac_us
 
-        try:
-            Ym = np.min(self.peaks[side])  # Ensure you use np.min to handle empty array correctly
-            YM = np.max(self.peaks[side])
-            Ymean = np.mean(self.peaks[side])
-        except ValueError:
-            print(f"Debug: Unable to compute min/max/mean of peaks in side {side}.")
-            return 0.0, 1.0, -np.inf
+        Ym = self.peaks[side].min()
+        YM = self.peaks[side].max()
+        Ymean = self.peaks[side].mean()
 
         a = -1 / YM
         if abs(a) < 2 * epsilon:
@@ -1907,38 +1881,35 @@ class bidSPOT:
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
         # We look for possible roots
-        try:
-            left_zeros = biSPOT._rootsFinder(
-                lambda t: w(self.peaks[side], t),
-                lambda t: jac_w(self.peaks[side], t),
-                (a + epsilon, -epsilon),
-                n_points,
-                "regular",
-            )
-            right_zeros = biSPOT._rootsFinder(
-                lambda t: w(self.peaks[side], t),
-                lambda t: jac_w(self.peaks[side], t),
-                (b, c),
-                n_points,
-                "regular",
-            )
-        except ValueError as e:
-            print(f"Debug: Error finding roots: {e}")
-            return 0.0, 1.0, -np.inf
+        left_zeros = bidSPOT._rootsFinder(
+            lambda t: w(self.peaks[side], t),
+            lambda t: jac_w(self.peaks[side], t),
+            (a + epsilon, -epsilon),
+            n_points,
+            "regular",
+        )
 
-        # All the possible roots
+        right_zeros = bidSPOT._rootsFinder(
+            lambda t: w(self.peaks[side], t),
+            lambda t: jac_w(self.peaks[side], t),
+            (b, c),
+            n_points,
+            "regular",
+        )
+
+        # all the possible roots
         zeros = np.concatenate((left_zeros, right_zeros))
 
-        # Initialize with 0 solution
+        # 0 is always a solution so we initialize with it
         gamma_best = 0
         sigma_best = Ymean
-        ll_best = biSPOT._log_likelihood(self.peaks[side], gamma_best, sigma_best)
+        ll_best = bidSPOT._log_likelihood(self.peaks[side], gamma_best, sigma_best)
 
-        # Look for better candidates
+        # we look for better candidates
         for z in zeros:
             gamma = u(1 + z * self.peaks[side]) - 1
             sigma = gamma / z
-            ll = biSPOT._log_likelihood(self.peaks[side], gamma, sigma)
+            ll = bidSPOT._log_likelihood(self.peaks[side], gamma, sigma)
             if ll > ll_best:
                 gamma_best = gamma
                 sigma_best = sigma

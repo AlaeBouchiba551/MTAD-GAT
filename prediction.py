@@ -16,7 +16,6 @@ class Predictor:
 
     def __init__(self, model, window_size, n_features, pred_args, summary_file_name="summary.txt"):
         self.model = model
-        self.test_anomaly_scores = None
         self.window_size = window_size
         self.n_features = n_features
         self.dataset = pred_args["dataset"]
@@ -107,7 +106,6 @@ class Predictor:
         :param scale_scores: Whether to feature-wise scale anomaly scores
         """
 
-
         if load_scores:
             print("Loading anomaly scores")
 
@@ -131,7 +129,6 @@ class Predictor:
             train_pred_df['A_Score_Global'] = train_anomaly_scores
             test_pred_df['A_Score_Global'] = test_anomaly_scores
 
-        self.test_anomaly_scores = test_anomaly_scores
         if self.use_mov_av:
             smoothing_window = int(self.batch_size * self.window_size * 0.05)
             train_anomaly_scores = pd.DataFrame(train_anomaly_scores).ewm(span=smoothing_window).mean().values.flatten()
