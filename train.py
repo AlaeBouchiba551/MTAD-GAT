@@ -106,8 +106,7 @@ if __name__ == "__main__":
         save_path,
         log_dir,
         print_every,
-        log_tensorboard,
-        args_summary
+        log_tensorboard
     )
 
     trainer.fit(train_loader, val_loader)
