@@ -13,13 +13,6 @@ cf.go_offline()
 
 
 class Plotter:
-
-    """
-    Class for visualizing results of anomaly detection.
-    Includes visualization of forecasts, reconstructions, anomaly scores, predicted and actual anomalies
-    Plotter-class inspired by TelemAnom (https://github.com/khundman/telemanom)
-    """
-
     def __init__(self, result_path, model_id='-1'):
         self.result_path = result_path
         self.model_id = model_id
@@ -30,133 +23,38 @@ class Plotter:
         self._load_results()
         self.train_output["timestamp"] = self.train_output.index
         self.test_output["timestamp"] = self.test_output.index
+        self.trainer = Trainer()  # Initialize your Trainer class instance
 
         config_path = f"{self.result_path}/config.txt"
         with open(config_path) as f:
             self.lookback = json.load(f)["lookback"]
 
         if "SMD" in self.result_path:
-            self.pred_cols = [f"feat_{i}" for i in range(get_data_dim("machine"))]
+            self.pred_cols = [f"feat_{i}" for i in range(self.trainer.get_data_dim("machine"))]
         elif "SMAP" in self.result_path or "MSL" in self.result_path:
             self.pred_cols = ["feat_1"]
 
     def _load_results(self):
+        # Load results using your Trainer class instance
         if self.model_id.startswith('-'):
-            dir_content = os.listdir(self.result_path)
-            datetimes = [datetime.strptime(subf, '%d%m%Y_%H%M%S') for subf in dir_content if os.path.isdir(f"{self.result_path}/{subf}")
-                          and subf not in ['logs']]
-            datetimes.sort()
-            model_id = datetimes[int(self.model_id)].strftime('%d%m%Y_%H%M%S')
-            self.result_path = f'{self.result_path}/{model_id}'
-
-        print(f"Loading results of {self.result_path}")
-        train_output = pd.read_pickle(f"{self.result_path}/train_output.pkl")
-        train_output.to_pickle(f"{self.result_path}/train_output.pkl")
-        train_output["A_True_Global"] = 0
-        test_output = pd.read_pickle(f"{self.result_path}/test_output.pkl")
-
-        # Because for SMAP and MSL only one feature is predicted
-        if 'SMAP' in self.result_path or 'MSL' in self.result_path:
-            train_output[f'A_Pred_0'] = train_output['A_Pred_Global']
-            train_output[f'A_Score_0'] = train_output['A_Score_Global']
-            train_output[f'Thresh_0'] = train_output['Thresh_Global']
-
-            test_output[f'A_Pred_0'] = test_output['A_Pred_Global']
-            test_output[f'A_Score_0'] = test_output['A_Score_Global']
-            test_output[f'Thresh_0'] = test_output['Thresh_Global']
-
-        self.train_output = train_output
-        self.test_output = test_output
+            self.trainer.load_results(self.result_path, self.model_id)
+            self.train_output = self.trainer.train_output
+            self.test_output = self.trainer.test_output
+        else:
+            # Handle loading when model_id is not negative
+            pass
 
     def result_summary(self):
-        path = f"{self.result_path}/summary.txt"
-        if not os.path.exists(path):
-            print(f"Folder {self.result_path} do not have a summary.txt file")
-            return
-        try:
-            print("Result summary:")
-            with open(path) as f:
-                result_dict = json.load(f)
-                epsilon_result = result_dict["epsilon_result"]
-                pot_result = result_dict["pot_result"]
-                bf_results = result_dict["bf_result"]
-                print(f'Epsilon:')
-                print(f'\t\tprecision: {epsilon_result["precision"]:.2f}, recall: {epsilon_result["recall"]:.2f}, F1: {epsilon_result["f1"]:.2f}')
-                print(f'POT:')
-                print(f'\t\tprecision: {pot_result["precision"]:.2f}, recall: {pot_result["recall"]:.2f}, F1: {pot_result["f1"]:.2f}')
-                print(f'Brute-Force:')
-                print(f'\t\tprecision: {bf_results["precision"]:.2f}, recall: {bf_results["recall"]:.2f}, F1: {bf_results["f1"]:.2f}')
+        # Extract results summary using your Trainer class instance
+        self.trainer.result_summary()
 
-        except FileNotFoundError as e:
-            print(e)
-
-    def create_shapes(self, ranges, sequence_type, _min, _max, plot_values, is_test=True, xref=None, yref=None):
-        """
-        Create shapes for regions to highlight in plotly (true and predicted anomaly sequences).
-
-        :param ranges: tuple of start and end indices for anomaly sequences for a feature
-        :param sequence_type: "predict" if predicted values else "true" if actual values. Determines colors.
-        :param _min: min y value of series
-        :param _max: max y value of series
-        :param plot_values: dictionary of different series to be plotted
-
-        :return: list of shapes specifications for plotly
-        """
-
-        if _max is None:
-            _max = max(plot_values["errors"])
-
-        if sequence_type is None:
-            color = "blue"
-        else:
-            color = "red" if sequence_type == "true" else "blue"
-        shapes = []
-
-        for r in ranges:
-            w = 5
-            x0 = r[0] - w
-            x1 = r[1] + w
-            shape = {
-                "type": "rect",
-                "x0": x0,
-                "y0": _min,
-                "x1": x1,
-                "y1": _max,
-                "fillcolor": color,
-                "opacity": 0.08,
-                "line": {
-                    "width": 0,
-                },
-            }
-            if xref is not None:
-                shape["xref"] = xref
-                shape["yref"] = yref
-
-            shapes.append(shape)
-
-        return shapes
-
-    @staticmethod
-    def get_anomaly_sequences(values):
-        splits = np.where(values[1:] != values[:-1])[0] + 1
-        if values[0] == 1:
-            splits = np.insert(splits, 0, 0)
-
-        a_seqs = []
-        for i in range(0, len(splits) - 1, 2):
-            a_seqs.append([splits[i], splits[i + 1] - 1])
-
-        if len(splits) % 2 == 1:
-            a_seqs.append([splits[-1], len(values) - 1])
-
-        return a_seqs
+    def get_anomaly_sequences(self, values):
+        # Move this method to be a static method or method of Trainer class
+        return self.trainer.get_anomaly_sequences(values)
 
     def plot_all_features(self, plot_train=False, plot_errors=True, plot_feature_anom=True, start=None, end=None):
-        """
-        Plot forecasting, reconstruction, true value of all features,
-        along with the anomaly score for each feature.
-        """
-        test_copy = self.test_output.copy()
+        # Use trainer instance methods to get data and sequences
+        test_copy = self.trainer.get_test_output()
 
         if start is not None and end is not None:
             assert start < end
@@ -169,7 +67,7 @@ class Plotter:
         plot_data = [test_copy]
 
         if plot_train:
-            train_copy = self.train_output.copy()
+            train_copy = self.trainer.get_train_output()
             plot_data.append(train_copy)
 
         for nr, data_copy in enumerate(plot_data):
@@ -185,12 +83,12 @@ class Plotter:
                     "y_recon": data_copy[f"Recon_{i}"].values,
                     "y_true": data_copy[f"True_{i}"].values,
                     "errors": data_copy[f"A_Score_{i}"].values,
-                    "threshold": data_copy[f"Thresh_{i}"]
+                    "threshold": data_copy[f"Thresh_{i}"].values
                 }
 
                 anomaly_sequences = {
-                    "pred": self.get_anomaly_sequences(data_copy[f"A_Pred_{i}"].values),
-                    "true": self.get_anomaly_sequences(data_copy["A_True_Global"].values),
+                    "pred": self.trainer.get_anomaly_sequences(data_copy[f"A_Pred_{i}"].values),
+                    "true": self.trainer.get_anomaly_sequences(data_copy["A_True_Global"].values),
                 }
 
                 if is_test and start is not None:
@@ -224,7 +122,7 @@ class Plotter:
                     {
                         "timestamp": plot_values["timestamp"],
                         "e_s": plot_values["errors"].reshape(-1, ),
-                        "threshold": plot_values["threshold"],
+                        "threshold": plot_values["threshold"].reshape(-1, ),
                     }
                 )
 
@@ -285,6 +183,7 @@ class Plotter:
                 if plot_errors:
                     e_fig = go.Figure(data=e_lines, layout=e_layout)
                     py.offline.iplot(e_fig)
+
 
 
     def plot_anomaly_segments(self, type="test", num_aligned_segments=None, show_boring_series=False):

@@ -1,16 +1,14 @@
 import json
 from datetime import datetime
+import torch
 import torch.nn as nn
-
 from args import get_parser
 from utils import *
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
 
-
 if __name__ == "__main__":
-
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
 
     parser = get_parser()
@@ -51,11 +49,11 @@ if __name__ == "__main__":
 
     x_train = torch.from_numpy(x_train).float()
     x_test = torch.from_numpy(x_test).float()
-    n_features = x_train.shape[1]
+    n_features = x_train.shape[1]  # Update to reflect all input features
 
     target_dims = get_target_dims(dataset)
     if target_dims is None:
-        out_dim = n_features
+        out_dim = n_features  # Forecast and reconstruct all input features
         print(f"Will forecast and reconstruct all {n_features} input features")
     elif type(target_dims) == int:
         print(f"Will forecast and reconstruct input feature: {target_dims}")
