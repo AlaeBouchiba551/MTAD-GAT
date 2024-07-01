@@ -54,7 +54,9 @@ class Trainer:
 
         if self.log_tensorboard:
             self.writer = SummaryWriter(f"{log_dir}")
+            print(f"args_summary (in Trainer): {args_summary} (type: {type(args_summary)})")
             self.writer.add_text("args_summary", args_summary)
+
 
     def fit(self, train_loader, val_loader=None):
         init_train_loss = self.evaluate(train_loader)
