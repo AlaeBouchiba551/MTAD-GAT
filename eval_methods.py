@@ -1,7 +1,33 @@
 import numpy as np
 import more_itertools as mit
+import matplotlib.pyplot as plt
 from spot import SPOT, dSPOT
 
+def plot_multiple_features(time_series, labels, features, save_path=None):
+    """
+    Plot multiple features of the time series data.
+
+    Parameters:
+    - time_series: The time series data
+    - labels: The anomaly labels
+    - features: List of feature indices to plot
+    - save_path: Path to save the plot (optional)
+    """
+    plt.figure(figsize=(15, 8))
+
+    for i, feature in enumerate(features):
+        plt.subplot(len(features), 1, i + 1)
+        plt.plot(time_series[:, feature], label=f'Feature {feature}')
+        plt.plot(labels, label='Anomalies', alpha=0.5)
+        plt.legend()
+        plt.title(f'Feature {feature}')
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path)
+    else:
+        plt.show()
 
 def adjust_predicts(score, label, threshold, pred=None, calc_latency=False):
     """
