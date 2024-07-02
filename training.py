@@ -12,6 +12,7 @@ class Trainer:
         optimizer,
         window_size,
         n_features,
+        target_dims=None,  # Add target_dims parameter
         n_epochs=200,
         batch_size=256,
         init_lr=0.001,
@@ -28,6 +29,7 @@ class Trainer:
         self.optimizer = optimizer
         self.window_size = window_size
         self.n_features = n_features
+        self.target_dims = target_dims  # Initialize target_dims
         self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.init_lr = init_lr
@@ -56,6 +58,7 @@ class Trainer:
             self.writer = SummaryWriter(f"{log_dir}")
             print(f"args_summary (in Trainer): {args_summary} (type: {type(args_summary)})")
             self.writer.add_text("args_summary", args_summary)
+
 
 
     def fit(self, train_loader, val_loader=None):
