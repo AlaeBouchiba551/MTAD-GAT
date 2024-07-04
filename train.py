@@ -9,8 +9,22 @@ from prediction import Predictor
 from training import Trainer
 
 if __name__ == "__main__":
-    id = datetime.now().strftime("%d%m%Y_%H%M%S")
+    import os
+    import json
+    from datetime import datetime
+    import torch
+    import torch.nn as nn
+    import numpy as np
+    from sklearn.metrics import f1_score
+    import matplotlib.pyplot as plt
+    from data_utils import get_data, SlidingWindowDataset, create_data_loaders
+    from model import MTAD_GAT
+    from trainer import Trainer
+    from predictor import Predictor
+    from parser import get_parser
 
+    # Initialize
+    id = datetime.now().strftime("%d%m%Y_%H%M%S")
     parser = get_parser()
     args = parser.parse_args()
 
@@ -31,6 +45,7 @@ if __name__ == "__main__":
     args_summary = str(args.__dict__)
     print(args_summary)
 
+    # Data Preparation
     if dataset == 'SMD':
         output_path = f'output/SMD/{args.group}'
         (x_train, _), (x_test, y_test) = get_data(f"machine-{group_index}-{index}", normalize=normalize)
@@ -49,11 +64,11 @@ if __name__ == "__main__":
 
     x_train = torch.from_numpy(x_train).float()
     x_test = torch.from_numpy(x_test).float()
-    n_features = x_train.shape[1]  # Update to reflect all input features
+    n_features = x_train.shape[1]
 
     target_dims = get_target_dims(dataset)
     if target_dims is None:
-        out_dim = n_features  # Forecast and reconstruct all input features
+        out_dim = n_features
         print(f"Will forecast and reconstruct all {n_features} input features")
     elif type(target_dims) == int:
         print(f"Will forecast and reconstruct input feature: {target_dims}")
@@ -163,6 +178,33 @@ if __name__ == "__main__":
 
     label = y_test[window_size:] if y_test is not None else None
     predictor.predict_anomalies(x_train, x_test, label)
+
+    # Sliding window evaluation and F1 score calculation
+    f1_scores = []
+
+    for i in range(len(x_test) - window_size + 1):
+        window_data = x_test[i:i + window_size]
+        window_label = y_test[i + window_size - 1] if y_test is not None else None
+
+        # Assuming your model's predict method returns binary anomaly scores
+        window_prediction = predictor.model.predict(window_data.unsqueeze(0))
+        if window_label is not None:
+            f1 = f1_score([window_label], window_prediction)
+            f1_scores.append(f1)
+
+    mean_f1_score = np.mean(f1_scores)
+    print(f"Mean F1 Score: {mean_f1_score:.5f}")
+
+    # Save F1 scores
+    np.save(f"{save_path}/f1_scores.npy", f1_scores)
+
+    # Visualize F1 scores
+    plt.plot(f1_scores)
+    plt.xlabel('Timestamp')
+    plt.ylabel('F1 Score')
+    plt.title('F1 Score per Timestamp')
+    plt.savefig(f"{save_path}/f1_scores.png")
+    plt.show()
 
     # Save config
     args_path = f"{save_path}/config.txt"

@@ -1,6 +1,5 @@
 import argparse
 
-
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -10,7 +9,6 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError("Boolean value expected.")
-
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -31,7 +29,7 @@ def get_parser():
     parser.add_argument("--time_gat_embed_dim", type=int, default=None)
     # GRU layer
     parser.add_argument("--gru_n_layers", type=int, default=1)
-    parser.add_argument("--gru_hid_dim", type=int, default=150)
+    parser.add_argument("--gru_hid_dim", type=int, default150)
     # Forecasting Model
     parser.add_argument("--fc_n_layers", type=int, default=3)
     parser.add_argument("--fc_hid_dim", type=int, default=150)
@@ -59,6 +57,10 @@ def get_parser():
     parser.add_argument("--level", type=float, default=None)
     parser.add_argument("--q", type=float, default=None)
     parser.add_argument("--dynamic_pot", type=str2bool, default=False)
+
+    # --- Sliding Window params ---
+    parser.add_argument("--window_size", type=int, default=100, help="Size of the sliding window")
+    parser.add_argument("--step_size", type=int, default=1, help="Step size for the sliding window")
 
     # --- Other ---
     parser.add_argument("--comment", type=str, default="")

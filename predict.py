@@ -1,7 +1,8 @@
 import argparse
 import json
 import datetime
-
+import os
+import torch
 from args import get_parser, str2bool
 from utils import *
 from mtad_gat import MTAD_GAT
@@ -171,3 +172,7 @@ if __name__ == "__main__":
     predictor.predict_anomalies(x_train, x_test, label,
                                 load_scores=args.load_scores,
                                 save_output=args.save_output)
+
+    # Perform sliding window F1 score evaluation
+    mean_f1_score = predictor.sliding_window_f1_evaluation(x_test, y_test)
+    print(f"Mean F1 Score: {mean_f1_score:.5f}")

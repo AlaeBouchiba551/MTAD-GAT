@@ -3,6 +3,32 @@ import more_itertools as mit
 import matplotlib.pyplot as plt
 from spot import SPOT, dSPOT
 
+def sliding_window_anomaly_detection(time_series, window_size, step_size, detection_function, *args, **kwargs):
+    """
+    Apply sliding window to time series data and perform anomaly detection.
+
+    Parameters:
+    - time_series: The time series data (2D array where each row is a timestamp)
+    - window_size: The size of the sliding window
+    - step_size: The step size for the sliding window
+    - detection_function: The anomaly detection function to apply
+    - *args, **kwargs: Additional arguments for the detection function
+
+    Returns:
+    - results: A list of results from the detection function for each window
+    """
+    num_windows = (len(time_series) - window_size) // step_size + 1
+    results = []
+
+    for i in range(num_windows):
+        start = i * step_size
+        end = start + window_size
+        window_data = time_series[start:end]
+        result = detection_function(window_data, *args, **kwargs)
+        results.append(result)
+
+    return results
+
 def plot_multiple_features(time_series, labels, features, save_path=None):
     """
     Plot multiple features of the time series data.
