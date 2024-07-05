@@ -74,8 +74,16 @@ class FeatureAttentionLayer(nn.Module):
         print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        combined_size = 2 * self.window_size if self.use_gatv2 else 2 * self.embed_dim
-        return combined.view(v.size(0), K, K, combined_size)
+        # Calculate the expected combined size dynamically
+        expected_size = v.size(0) * K * K * combined.size(2)
+        print(f"FeatureAttentionLayer _make_attention_input - expected_size: {expected_size}")
+        print(f"FeatureAttentionLayer _make_attention_input - combined.numel(): {combined.numel()}")
+
+        if combined.numel() == expected_size:
+            return combined.view(v.size(0), K, K, combined.size(2))
+        else:
+            raise RuntimeError(f"Shape mismatch: expected {expected_size} elements but got {combined.numel()}")
+
 
 class TemporalAttentionLayer(nn.Module):
     def __init__(self, n_features, window_size, dropout, alpha, embed_dim=None, use_gatv2=True, use_bias=True):
@@ -135,8 +143,15 @@ class TemporalAttentionLayer(nn.Module):
         print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        combined_size = 2 * self.n_features if self.use_gatv2 else 2 * self.embed_dim
-        return combined.view(v.size(0), K, K, combined_size)
+        # Calculate the expected combined size dynamically
+        expected_size = v.size(0) * K * K * combined.size(2)
+        print(f"TemporalAttentionLayer _make_attention_input - expected_size: {expected_size}")
+        print(f"TemporalAttentionLayer _make_attention_input - combined.numel(): {combined.numel()}")
+
+        if combined.numel() == expected_size:
+            return combined.view(v.size(0), K, K, combined.size(2))
+        else:
+            raise RuntimeError(f"Shape mismatch: expected {expected_size} elements but got {combined.numel()}")
 class GRULayer(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layers, dropout):
         super(GRULayer, self).__init__()
