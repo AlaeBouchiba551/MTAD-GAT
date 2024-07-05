@@ -66,8 +66,11 @@ if __name__ == "__main__":
     first_batch = next(iter(train_loader))
     n_features = first_batch[0].shape[1]
 
+    # Define the output dimension
+    out_dim = 1
+
     # Load model
-    model = MTAD_GAT(window_size=window_size, n_features=n_features).to(device)
+    model = MTAD_GAT(window_size=window_size, n_features=n_features, out_dim=out_dim).to(device)
 
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
