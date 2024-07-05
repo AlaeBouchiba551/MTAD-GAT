@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 
 class ConvLayer(nn.Module):
-    def __init__(self, n_features, kernel_size, out_channels=64, stride=1, padding=0):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding='same'):
         super(ConvLayer, self).__init__()
-        self.conv = nn.Conv1d(in_channels=n_features, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        if padding == 'same':
+            padding = kernel_size // 2
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.relu = nn.ReLU()
 
     def forward(self, x):

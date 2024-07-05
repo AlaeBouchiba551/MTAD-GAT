@@ -31,7 +31,7 @@ class MTAD_GAT(nn.Module):
     ):
         super(MTAD_GAT, self).__init__()
         self.window_size = window_size
-        self.conv = ConvLayer(n_features=n_features, kernel_size=kernel_size, out_channels=64, stride=1, padding=0)
+        self.conv = ConvLayer(in_channels=n_features, out_channels=64, kernel_size=kernel_size, stride=1, padding='same')
         self.feature_gat = FeatureAttentionLayer(n_features, window_size, dropout, alpha, feat_gat_embed_dim, use_gatv2)
         self.temporal_gat = TemporalAttentionLayer(n_features, window_size, dropout, alpha, time_gat_embed_dim,
                                                    use_gatv2)
@@ -66,5 +66,5 @@ class MTAD_GAT(nn.Module):
 
 # Example usage:
 # model = MTAD_GAT(n_features=55, window_size=100, out_dim=55)
-# time_series_data = torch.randn(1000, 55)  # Example time series data
-# predictions, recons = model.sliding_window_inference(time_series_data)
+# time_series data = torch.randn(1000, 55)  # Example time series data
+# predictions, recons = model.sliding_window_inference(time_series data)
