@@ -74,17 +74,9 @@ class FeatureAttentionLayer(nn.Module):
         print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Use combined.shape to determine correct reshape size
+        # Calculate reshape dimensions dynamically
         combined_size = combined.size(2)
-        expected_elements = combined.size(0) * combined.size(1) * combined.size(2)
-        actual_elements = combined.numel()
-        print(f"FeatureAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
-        print(f"FeatureAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
-
-        if actual_elements == expected_elements:
-            return combined.view(v.size(0), K, K, combined_size)
-        else:
-            raise RuntimeError(f"Shape mismatch: expected {expected_elements} elements but got {actual_elements}")
+        return combined.view(v.size(0), K, -1, combined_size)
 
 
 class TemporalAttentionLayer(nn.Module):
@@ -145,17 +137,9 @@ class TemporalAttentionLayer(nn.Module):
         print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Use combined.shape to determine correct reshape size
+        # Calculate reshape dimensions dynamically
         combined_size = combined.size(2)
-        expected_elements = combined.size(0) * combined.size(1) * combined.size(2)
-        actual_elements = combined.numel()
-        print(f"TemporalAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
-        print(f"TemporalAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
-
-        if actual_elements == expected_elements:
-            return combined.view(v.size(0), K, K, combined_size)
-        else:
-            raise RuntimeError(f"Shape mismatch: expected {expected_elements} elements but got {actual_elements}")
+        return combined.view(v.size(0), K, -1, combined_size)
 class GRULayer(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layers, dropout):
         super(GRULayer, self).__init__()
