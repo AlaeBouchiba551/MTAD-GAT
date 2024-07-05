@@ -3,7 +3,7 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 from args import get_parser
-from utils import *
+from utils import get_data, normalize_data  # Importing get_data
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     import numpy as np
     from sklearn.metrics import f1_score
     import matplotlib.pyplot as plt
-    from data_utils import get_data, SlidingWindowDataset, create_data_loaders
+    from utils import get_data, normalize_data  # Adjusted import
     from model import MTAD_GAT
     from trainer import Trainer
     from predictor import Predictor
@@ -42,8 +42,13 @@ if __name__ == "__main__":
     log_tensorboard = args.log_tensorboard
 
     # Load data
-    train_loader, val_loader, test_loader = create_data_loaders(dataset, window_size, batch_size, val_split,
-                                                                shuffle_dataset)
+    train_data, test_data = get_data(dataset)
+    train_loader = DataLoader(TensorDataset(torch.tensor(train_data[0]), torch.tensor(train_data[1])),
+                              batch_size=batch_size, shuffle=shuffle_dataset)
+    val_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
+                            batch_size=batch_size, shuffle=shuffle_dataset)
+    test_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
+                             batch_size=batch_size, shuffle=False)
 
     # Load model
     model = MTAD_GAT(window_size=window_size, n_features=train_loader.dataset[0][0].shape[1], use_cuda=use_cuda)
@@ -69,14 +74,10 @@ if __name__ == "__main__":
     os.makedirs(model_path, exist_ok=True)
     torch.save(model.state_dict(), f"{model_path}/model.pt")
 
-    # Load the dataset for evaluation
-    data = np.load(f"./data/{dataset}/test.npy")
-    true_labels = np.load(f"./data/{dataset}/test_labels.npy")
-
     # Perform sliding window evaluation
     from eval_methods import sliding_window_evaluation
 
-    mean_f1 = sliding_window_evaluation(data, args.window_size, args.step_size, model, model_prediction,
-                                        true_labels=true_labels)
+    mean_f1 = sliding_window_evaluation(test_data[0], args.window_size, args.step_size, model, model_prediction,
+                                        true_labels=test_data[1])
 
     print(f"Mean F1 Score: {mean_f1}")
