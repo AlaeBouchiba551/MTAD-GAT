@@ -40,6 +40,9 @@ class MTAD_GAT(nn.Module):
         self.recon_model = ReconstructionModel(window_size, gru_hid_dim, recon_hid_dim, out_dim, recon_n_layers, dropout)
 
     def forward(self, x):
+        if x.dim() == 2:  # If the input tensor has only 2 dimensions
+            x = x.unsqueeze(1)  # Add an extra dimension to make it 3D
+        x = x.permute(0, 2, 1)  # Permute to match Conv1d input format
         x = self.conv(x)
         h_feat = self.feature_gat(x)
         h_temp = self.temporal_gat(x)
