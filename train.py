@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from args import get_parser
 from utils import get_data, normalize_data  # Importing get_data
-from mtad_gat import MTAD_GAT
+from mtad_gat import MTAD_GAT  # Adjusted import
 from prediction import Predictor
 from training import Trainer
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     from sklearn.metrics import f1_score
     import matplotlib.pyplot as plt
     from utils import get_data, normalize_data  # Adjusted import
-    from model import MTAD_GAT
+    from mtad_gat import MTAD_GAT  # Adjusted import
     from trainer import Trainer
     from predictor import Predictor
     from parser import get_parser
