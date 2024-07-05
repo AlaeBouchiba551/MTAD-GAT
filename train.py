@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 import torch
 import torch.nn as nn
-from args import get_parser
+from args import get_parser  # Updated import
 from utils import get_data, normalize_data  # Importing get_data
 from mtad_gat import MTAD_GAT  # Adjusted import
 from prediction import Predictor  # Adjusted import
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     from mtad_gat import MTAD_GAT  # Adjusted import
     from training import Trainer  # Adjusted import
     from prediction import Predictor  # Adjusted import
-    from parser import get_parser
+    from args import get_parser  # Updated import
 
     # Initialize
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
