@@ -83,7 +83,7 @@ if __name__ == "__main__":
                       log_tensorboard=log_tensorboard, args_summary="")
 
     # Training
-    trainer.train(train_loader, val_loader)
+    trainer.fit(train_loader, val_loader)
 
     # Save model
     model_id = id
