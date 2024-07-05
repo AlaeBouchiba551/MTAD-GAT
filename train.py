@@ -45,8 +45,15 @@ if __name__ == "__main__":
 
     # Load data
     train_data, test_data = get_data(dataset)
-    train_loader = DataLoader(TensorDataset(torch.tensor(train_data[0]), torch.tensor(train_data[1])),
-                              batch_size=batch_size, shuffle=shuffle_dataset)
+
+    # Handle the case when train_data labels are None
+    if train_data[1] is None:
+        train_labels = torch.zeros(len(train_data[0]), dtype=torch.long)
+    else:
+        train_labels = torch.tensor(train_data[1], dtype=torch.long)
+
+    train_loader = DataLoader(TensorDataset(torch.tensor(train_data[0]), train_labels), batch_size=batch_size,
+                              shuffle=shuffle_dataset)
     val_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
                             batch_size=batch_size, shuffle=shuffle_dataset)
     test_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
