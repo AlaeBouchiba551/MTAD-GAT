@@ -46,6 +46,10 @@ if __name__ == "__main__":
     # Load data
     train_data, test_data = get_data(dataset)
 
+    # Print the structure of train_data and test_data
+    print("train_data:", train_data)
+    print("test_data:", test_data)
+
     # Handle the case when train_data labels are None
     if train_data[1] is None:
         train_labels = torch.zeros(len(train_data[0]), dtype=torch.long)
@@ -58,6 +62,9 @@ if __name__ == "__main__":
                             batch_size=batch_size, shuffle=shuffle_dataset)
     test_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
                              batch_size=batch_size, shuffle=False)
+
+    # Print the structure of the first batch
+    print("First batch of train_loader:", next(iter(train_loader)))
 
     # Load model
     model = MTAD_GAT(window_size=window_size, n_features=train_loader.dataset[0][0].shape[1], use_cuda=use_cuda)
