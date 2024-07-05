@@ -6,7 +6,7 @@ from args import get_parser
 from utils import get_data, normalize_data  # Importing get_data
 from mtad_gat import MTAD_GAT  # Adjusted import
 from prediction import Predictor
-from training import Trainer
+from training import Trainer  # Adjusted import
 
 if __name__ == "__main__":
     import os
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from utils import get_data, normalize_data  # Adjusted import
     from mtad_gat import MTAD_GAT  # Adjusted import
-    from trainer import Trainer
+    from training import Trainer  # Adjusted import
     from predictor import Predictor
     from parser import get_parser
 
