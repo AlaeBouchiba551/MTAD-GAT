@@ -8,10 +8,9 @@ class ConvLayer(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        x = x.permute(0, 2, 1)
-        x = self.padding(x)
-        x = self.relu(self.conv(x))
-        return x.permute(0, 2, 1)
+        x = self.conv(x)
+        x = self.relu(x)
+        return x
 
 class FeatureAttentionLayer(nn.Module):
     def __init__(self, n_features, window_size, dropout, alpha, embed_dim=None, use_gatv2=True, use_bias=True):
