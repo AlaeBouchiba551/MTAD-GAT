@@ -74,9 +74,9 @@ class FeatureAttentionLayer(nn.Module):
         print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Correctly calculate the reshape size dynamically
+        # Use combined.shape to determine correct reshape size
         combined_size = combined.size(2)
-        expected_elements = v.size(0) * K * K * combined_size
+        expected_elements = combined.size(0) * combined.size(1) * combined.size(2)
         actual_elements = combined.numel()
         print(f"FeatureAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
         print(f"FeatureAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
@@ -145,9 +145,9 @@ class TemporalAttentionLayer(nn.Module):
         print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Correctly calculate the reshape size dynamically
+        # Use combined.shape to determine correct reshape size
         combined_size = combined.size(2)
-        expected_elements = v.size(0) * K * K * combined_size
+        expected_elements = combined.size(0) * combined.size(1) * combined.size(2)
         actual_elements = combined.numel()
         print(f"TemporalAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
         print(f"TemporalAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
