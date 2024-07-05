@@ -31,7 +31,7 @@ class MTAD_GAT(nn.Module):
     ):
         super(MTAD_GAT, self).__init__()
         self.window_size = window_size
-        self.conv = ConvLayer(n_features, kernel_size)
+        self.conv = ConvLayer(in_channels=n_features, out_channels=64, kernel_size=kernel_size)
         self.feature_gat = FeatureAttentionLayer(n_features, window_size, dropout, alpha, feat_gat_embed_dim, use_gatv2)
         self.temporal_gat = TemporalAttentionLayer(n_features, window_size, dropout, alpha, time_gat_embed_dim,
                                                    use_gatv2)
