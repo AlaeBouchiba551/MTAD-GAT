@@ -46,10 +46,6 @@ if __name__ == "__main__":
     # Load data
     train_data, test_data = get_data(dataset)
 
-    # Print the structure of train_data and test_data
-    print("train_data:", train_data)
-    print("test_data:", test_data)
-
     # Handle the case when train_data labels are None
     if train_data[1] is None:
         train_labels = torch.zeros(len(train_data[0]), dtype=torch.long)
@@ -63,11 +59,12 @@ if __name__ == "__main__":
     test_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
                              batch_size=batch_size, shuffle=False)
 
-    # Print the structure of the first batch
-    print("First batch of train_loader:", next(iter(train_loader)))
+    # Get the feature dimension from the first batch
+    first_batch = next(iter(train_loader))
+    n_features = first_batch[0].shape[1]
 
     # Load model
-    model = MTAD_GAT(window_size=window_size, n_features=train_loader.dataset[0][0].shape[1], use_cuda=use_cuda)
+    model = MTAD_GAT(window_size=window_size, n_features=n_features, use_cuda=use_cuda)
     if use_cuda:
         model.cuda()
 
@@ -75,7 +72,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
 
     # Trainer
-    trainer = Trainer(model, optimizer, window_size, n_features=train_loader.dataset[0][0].shape[1],
+    trainer = Trainer(model, optimizer, window_size, n_features=n_features,
                       target_dims=None, n_epochs=n_epochs, batch_size=batch_size, init_lr=init_lr,
                       forecast_criterion=nn.MSELoss(), recon_criterion=nn.MSELoss(),
                       use_cuda=use_cuda, dload="", log_dir="output/", print_every=print_every,
