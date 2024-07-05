@@ -66,11 +66,15 @@ class FeatureAttentionLayer(nn.Module):
 
     def _make_attention_input(self, v):
         K = self.num_nodes
-        # Dynamically compute the combined size to avoid mismatches
-        combined_size = 2 * self.window_size if self.use_gatv2 else 2 * self.embed_dim
         blocks_repeating = v.repeat_interleave(K, dim=1)
         blocks_alternating = v.repeat(1, K, 1)
         combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
+
+        # Debugging statements
+        print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
+        print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
+
+        combined_size = 2 * self.window_size if self.use_gatv2 else 2 * self.embed_dim
         return combined.view(v.size(0), K, K, combined_size)
 
 class TemporalAttentionLayer(nn.Module):
@@ -123,11 +127,15 @@ class TemporalAttentionLayer(nn.Module):
 
     def _make_attention_input(self, v):
         K = self.num_nodes
-        # Dynamically compute the combined size to avoid mismatches
-        combined_size = 2 * self.n_features if self.use_gatv2 else 2 * self.embed_dim
         blocks_repeating = v.repeat_interleave(K, dim=1)
         blocks_alternating = v.repeat(1, K, 1)
         combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
+
+        # Debugging statements
+        print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
+        print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
+
+        combined_size = 2 * self.n_features if self.use_gatv2 else 2 * self.embed_dim
         return combined.view(v.size(0), K, K, combined_size)
 class GRULayer(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layers, dropout):
