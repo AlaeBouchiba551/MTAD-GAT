@@ -55,12 +55,16 @@ if __name__ == "__main__":
     else:
         train_labels = torch.tensor(train_data[1], dtype=torch.long)
 
-    train_loader = DataLoader(TensorDataset(torch.tensor(train_data[0]), train_labels), batch_size=batch_size,
+    # Convert data to torch.float32
+    train_data_tensor = torch.tensor(train_data[0], dtype=torch.float32)
+    test_data_tensor = torch.tensor(test_data[0], dtype=torch.float32)
+    test_labels_tensor = torch.tensor(test_data[1], dtype=torch.float32)
+
+    train_loader = DataLoader(TensorDataset(train_data_tensor, train_labels), batch_size=batch_size,
                               shuffle=shuffle_dataset)
-    val_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
-                            batch_size=batch_size, shuffle=shuffle_dataset)
-    test_loader = DataLoader(TensorDataset(torch.tensor(test_data[0]), torch.tensor(test_data[1])),
-                             batch_size=batch_size, shuffle=False)
+    val_loader = DataLoader(TensorDataset(test_data_tensor, test_labels_tensor), batch_size=batch_size,
+                            shuffle=shuffle_dataset)
+    test_loader = DataLoader(TensorDataset(test_data_tensor, test_labels_tensor), batch_size=batch_size, shuffle=False)
 
     # Get the feature dimension from the first batch
     first_batch = next(iter(train_loader))
