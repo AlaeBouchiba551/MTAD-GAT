@@ -48,7 +48,9 @@ class FeatureAttentionLayer(nn.Module):
 
         if self.use_gatv2:
             a_input = self._make_attention_input(x)
+            a_input = a_input.view(-1, a_input.size(3))  # Flatten for linear layer
             a_input = self.leakyrelu(self.lin(a_input))
+            a_input = a_input.view(x.size(0), self.n_features, self.n_features, -1)  # Reshape back
             e = torch.matmul(a_input, self.a).squeeze(3)
         else:
             Wx = self.lin(x)
@@ -74,7 +76,7 @@ class FeatureAttentionLayer(nn.Module):
         print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Calculate reshape dimensions dynamically
+        # Adjust reshape dimensions dynamically
         combined_size = combined.size(2)
         return combined.view(v.size(0), K, -1, combined_size)
 
@@ -111,7 +113,9 @@ class TemporalAttentionLayer(nn.Module):
     def forward(self, x):
         if self.use_gatv2:
             a_input = self._make_attention_input(x)
+            a_input = a_input.view(-1, a_input.size(3))  # Flatten for linear layer
             a_input = self.leakyrelu(self.lin(a_input))
+            a_input = a_input.view(x.size(0), self.window_size, self.window_size, -1)  # Reshape back
             e = torch.matmul(a_input, self.a).squeeze(3)
         else:
             Wx = self.lin(x)
@@ -126,7 +130,6 @@ class TemporalAttentionLayer(nn.Module):
         h = self.sigmoid(torch.matmul(attention, x))
 
         return h
-
     def _make_attention_input(self, v):
         K = self.num_nodes
         blocks_repeating = v.repeat_interleave(K, dim=1)
@@ -137,9 +140,11 @@ class TemporalAttentionLayer(nn.Module):
         print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Calculate reshape dimensions dynamically
+        # Adjust reshape dimensions dynamically
         combined_size = combined.size(2)
         return combined.view(v.size(0), K, -1, combined_size)
+
+
 class GRULayer(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layers, dropout):
         super(GRULayer, self).__init__()
