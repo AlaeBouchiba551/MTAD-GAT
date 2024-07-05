@@ -74,15 +74,17 @@ class FeatureAttentionLayer(nn.Module):
         print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Calculate the expected combined size dynamically
-        expected_size = v.size(0) * K * K * combined.size(2)
-        print(f"FeatureAttentionLayer _make_attention_input - expected_size: {expected_size}")
-        print(f"FeatureAttentionLayer _make_attention_input - combined.numel(): {combined.numel()}")
+        # Correctly calculate the reshape size dynamically
+        combined_size = combined.size(2)
+        expected_elements = v.size(0) * K * K * combined_size
+        actual_elements = combined.numel()
+        print(f"FeatureAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
+        print(f"FeatureAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
 
-        if combined.numel() == expected_size:
-            return combined.view(v.size(0), K, K, combined.size(2))
+        if actual_elements == expected_elements:
+            return combined.view(v.size(0), K, K, combined_size)
         else:
-            raise RuntimeError(f"Shape mismatch: expected {expected_size} elements but got {combined.numel()}")
+            raise RuntimeError(f"Shape mismatch: expected {expected_elements} elements but got {actual_elements}")
 
 
 class TemporalAttentionLayer(nn.Module):
@@ -143,15 +145,17 @@ class TemporalAttentionLayer(nn.Module):
         print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
         print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
 
-        # Calculate the expected combined size dynamically
-        expected_size = v.size(0) * K * K * combined.size(2)
-        print(f"TemporalAttentionLayer _make_attention_input - expected_size: {expected_size}")
-        print(f"TemporalAttentionLayer _make_attention_input - combined.numel(): {combined.numel()}")
+        # Correctly calculate the reshape size dynamically
+        combined_size = combined.size(2)
+        expected_elements = v.size(0) * K * K * combined_size
+        actual_elements = combined.numel()
+        print(f"TemporalAttentionLayer _make_attention_input - expected_elements: {expected_elements}")
+        print(f"TemporalAttentionLayer _make_attention_input - actual_elements: {actual_elements}")
 
-        if combined.numel() == expected_size:
-            return combined.view(v.size(0), K, K, combined.size(2))
+        if actual_elements == expected_elements:
+            return combined.view(v.size(0), K, K, combined_size)
         else:
-            raise RuntimeError(f"Shape mismatch: expected {expected_size} elements but got {combined.numel()}")
+            raise RuntimeError(f"Shape mismatch: expected {expected_elements} elements but got {actual_elements}")
 class GRULayer(nn.Module):
     def __init__(self, in_dim, hid_dim, n_layers, dropout):
         super(GRULayer, self).__init__()
