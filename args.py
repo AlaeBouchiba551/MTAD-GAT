@@ -48,4 +48,8 @@ def get_parser():
     parser.add_argument("--use_mov_av", type=str2bool, default=False, help="Use moving average for anomaly scores")
     parser.add_argument("--gamma", type=float, default=1.0, help="Gamma parameter for score calculation")
 
+    # Add window_size and step_size arguments
+    parser.add_argument("--window_size", type=int, default=1000, help="Size of the sliding window in timestamps")
+    parser.add_argument("--step_size", type=int, default=1, help="Step size for sliding window")
+
     return parser
