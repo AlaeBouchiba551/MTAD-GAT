@@ -5,7 +5,7 @@ import torch.nn as nn
 from args import get_parser
 from utils import get_data, normalize_data  # Importing get_data
 from mtad_gat import MTAD_GAT  # Adjusted import
-from prediction import Predictor
+from prediction import Predictor  # Adjusted import
 from training import Trainer  # Adjusted import
 
 if __name__ == "__main__":
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     from utils import get_data, normalize_data  # Adjusted import
     from mtad_gat import MTAD_GAT  # Adjusted import
     from training import Trainer  # Adjusted import
-    from predictor import Predictor
+    from prediction import Predictor  # Adjusted import
     from parser import get_parser
 
     # Initialize
