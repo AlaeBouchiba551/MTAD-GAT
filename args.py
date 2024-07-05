@@ -17,7 +17,7 @@ def get_parser():
 
     # Add your arguments here
     parser.add_argument("--dataset", type=str, required=True, help="Dataset to use")
-    parser.add_argument("--group", type=str, required=True, help="Group for the SMD dataset")
+    parser.add_argument("--group", type=str, help="Group for the SMD dataset")
     parser.add_argument("--lookback", type=int, default=100, help="Window size for the model")
     parser.add_argument("--spec_res", type=bool, default=False, help="Specific resolution")
     parser.add_argument("--normalize", type=str2bool, default=True, help="Normalize the data")
