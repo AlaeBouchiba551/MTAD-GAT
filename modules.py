@@ -43,14 +43,30 @@ class FeatureAttentionLayer(nn.Module):
         self.leakyrelu = nn.LeakyReLU(alpha)
         self.sigmoid = nn.Sigmoid()
 
+    def _make_attention_input(self, v):
+        K = self.num_nodes
+        blocks_repeating = v.repeat_interleave(K, dim=1)
+        blocks_alternating = v.repeat(1, K, 1)
+        combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
+
+        # Debugging statements
+        print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
+        print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
+
+        combined_size = combined.size(2)
+        return combined.view(v.size(0), K, K, combined_size)
+
     def forward(self, x):
         x = x.permute(0, 2, 1)
 
         if self.use_gatv2:
             a_input = self._make_attention_input(x)
+            print(f"FeatureAttentionLayer forward - a_input.shape before lin: {a_input.shape}")
             a_input = a_input.view(-1, a_input.size(3))  # Flatten for linear layer
+            print(f"FeatureAttentionLayer forward - a_input.shape after flatten: {a_input.shape}")
             a_input = self.leakyrelu(self.lin(a_input))
             a_input = a_input.view(x.size(0), self.n_features, self.n_features, -1)  # Reshape back
+            print(f"FeatureAttentionLayer forward - a_input.shape after lin: {a_input.shape}")
             e = torch.matmul(a_input, self.a).squeeze(3)
         else:
             Wx = self.lin(x)
@@ -65,20 +81,6 @@ class FeatureAttentionLayer(nn.Module):
         h = self.sigmoid(torch.matmul(attention, x))
 
         return h.permute(0, 2, 1)
-
-    def _make_attention_input(self, v):
-        K = self.num_nodes
-        blocks_repeating = v.repeat_interleave(K, dim=1)
-        blocks_alternating = v.repeat(1, K, 1)
-        combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
-
-        # Debugging statements
-        print(f"FeatureAttentionLayer _make_attention_input - v.shape: {v.shape}")
-        print(f"FeatureAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
-
-        # Adjust reshape dimensions dynamically
-        combined_size = combined.size(2)
-        return combined.view(v.size(0), K, -1, combined_size)
 
 
 class TemporalAttentionLayer(nn.Module):
@@ -110,12 +112,28 @@ class TemporalAttentionLayer(nn.Module):
         self.leakyrelu = nn.LeakyReLU(alpha)
         self.sigmoid = nn.Sigmoid()
 
+    def _make_attention_input(self, v):
+        K = self.num_nodes
+        blocks_repeating = v.repeat_interleave(K, dim=1)
+        blocks_alternating = v.repeat(1, K, 1)
+        combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
+
+        # Debugging statements
+        print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
+        print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
+
+        combined_size = combined.size(2)
+        return combined.view(v.size(0), K, K, combined_size)
+
     def forward(self, x):
         if self.use_gatv2:
             a_input = self._make_attention_input(x)
+            print(f"TemporalAttentionLayer forward - a_input.shape before lin: {a_input.shape}")
             a_input = a_input.view(-1, a_input.size(3))  # Flatten for linear layer
+            print(f"TemporalAttentionLayer forward - a_input.shape after flatten: {a_input.shape}")
             a_input = self.leakyrelu(self.lin(a_input))
             a_input = a_input.view(x.size(0), self.window_size, self.window_size, -1)  # Reshape back
+            print(f"TemporalAttentionLayer forward - a_input.shape after lin: {a_input.shape}")
             e = torch.matmul(a_input, self.a).squeeze(3)
         else:
             Wx = self.lin(x)
@@ -130,19 +148,6 @@ class TemporalAttentionLayer(nn.Module):
         h = self.sigmoid(torch.matmul(attention, x))
 
         return h
-    def _make_attention_input(self, v):
-        K = self.num_nodes
-        blocks_repeating = v.repeat_interleave(K, dim=1)
-        blocks_alternating = v.repeat(1, K, 1)
-        combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
-
-        # Debugging statements
-        print(f"TemporalAttentionLayer _make_attention_input - v.shape: {v.shape}")
-        print(f"TemporalAttentionLayer _make_attention_input - combined.shape: {combined.shape}")
-
-        # Adjust reshape dimensions dynamically
-        combined_size = combined.size(2)
-        return combined.view(v.size(0), K, -1, combined_size)
 
 
 class GRULayer(nn.Module):
