@@ -2,12 +2,12 @@ import json
 from datetime import datetime
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset  # Add these imports
+from torch.utils.data import DataLoader, TensorDataset
 from args import get_parser
-from utils import get_data, normalize_data  # Importing get_data
-from mtad_gat import MTAD_GAT  # Adjusted import
-from prediction import Predictor  # Adjusted import
-from training import Trainer  # Adjusted import
+from utils import get_data, normalize_data
+from mtad_gat import MTAD_GAT
+from prediction import Predictor
+from training import Trainer
 
 if __name__ == "__main__":
     import os
@@ -18,12 +18,12 @@ if __name__ == "__main__":
     import numpy as np
     from sklearn.metrics import f1_score
     import matplotlib.pyplot as plt
-    from utils import get_data, normalize_data  # Adjusted import
-    from mtad_gat import MTAD_GAT  # Adjusted import
-    from training import Trainer  # Adjusted import
-    from prediction import Predictor  # Adjusted import
-    from args import get_parser  # Updated import
-    from torch.utils.data import DataLoader, TensorDataset  # Add these imports
+    from utils import get_data, normalize_data
+    from mtad_gat import MTAD_GAT
+    from training import Trainer
+    from prediction import Predictor
+    from args import get_parser
+    from torch.utils.data import DataLoader, TensorDataset
 
     # Initialize
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
@@ -42,6 +42,9 @@ if __name__ == "__main__":
     use_cuda = args.use_cuda
     print_every = args.print_every
     log_tensorboard = args.log_tensorboard
+
+    # Set device
+    device = torch.device("cuda" if use_cuda and torch.cuda.is_available() else "cpu")
 
     # Load data
     train_data, test_data = get_data(dataset)
@@ -64,9 +67,7 @@ if __name__ == "__main__":
     n_features = first_batch[0].shape[1]
 
     # Load model
-    model = MTAD_GAT(window_size=window_size, n_features=n_features, use_cuda=use_cuda)
-    if use_cuda:
-        model.cuda()
+    model = MTAD_GAT(window_size=window_size, n_features=n_features).to(device)
 
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
