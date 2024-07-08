@@ -71,9 +71,16 @@ class FeatureAttentionLayer(nn.Module):
         blocks_alternating = v.repeat(1, K, 1)
         combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
 
+        # Print shapes for debugging
+        print(f"v.shape: {v.shape}")
+        print(f"blocks_repeating.shape: {blocks_repeating.shape}")
+        print(f"blocks_alternating.shape: {blocks_alternating.shape}")
+        print(f"combined.shape: {combined.shape}")
+
         # Ensure the shape is correct for the view operation
         expected_size = v.size(0) * K * K * combined_size
         actual_size = combined.size(0) * combined.size(1) * combined.size(2)
+        print(f"Expected size: {expected_size}, Actual size: {actual_size}")
         assert expected_size == actual_size, f"Expected size {expected_size} but got {actual_size}"
 
         if self.use_gatv2:
