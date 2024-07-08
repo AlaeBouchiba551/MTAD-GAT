@@ -66,7 +66,7 @@ class FeatureAttentionLayer(nn.Module):
 
     def _make_attention_input(self, v):
         K = self.num_nodes
-        combined_size = 2 * self.window_size if self.use_gatv2 else 2 * self.embed_dim
+        combined_size = 2 * v.size(2)  # This should be 2 * window_size or 2 * embed_dim
         blocks_repeating = v.repeat_interleave(K, dim=1)
         blocks_alternating = v.repeat(1, K, 1)
         combined = torch.cat((blocks_repeating, blocks_alternating), dim=2)
@@ -77,16 +77,15 @@ class FeatureAttentionLayer(nn.Module):
         print(f"blocks_alternating.shape: {blocks_alternating.shape}")
         print(f"combined.shape: {combined.shape}")
 
-        # Calculate the new shape
+        # Ensure the shape is correct for the view operation
         batch_size = v.size(0)
         combined_dim = combined.size(2)
-        assert combined_dim == combined_size, f"Expected combined_dim to be {combined_size}, but got {combined_dim}"
+        expected_combined_dim = 2 * v.size(2)
+        assert combined_dim == expected_combined_dim, f"Expected combined_dim to be {expected_combined_dim}, but got {combined_dim}"
 
         # Return the reshaped tensor
-        if self.use_gatv2:
-            return combined.view(batch_size, K, K, 2 * self.window_size)
-        else:
-            return combined.view(batch_size, K, K, 2 * self.embed_dim)
+        return combined.view(batch_size, K, K, combined_dim)
+
 
 
 class TemporalAttentionLayer(nn.Module):
