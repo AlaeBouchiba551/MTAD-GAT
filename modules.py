@@ -78,7 +78,7 @@ class FeatureAttentionLayer(nn.Module):
         print(f"combined.shape: {combined.shape}")
 
         # Ensure the shape is correct for the view operation
-        expected_size = v.size(0) * K * K * combined_size
+        expected_size = combined.numel()  # Total number of elements in the combined tensor
         actual_size = combined.size(0) * combined.size(1) * combined.size(2)
         print(f"Expected size: {expected_size}, Actual size: {actual_size}")
         assert expected_size == actual_size, f"Expected size {expected_size} but got {actual_size}"
@@ -87,7 +87,6 @@ class FeatureAttentionLayer(nn.Module):
             return combined.view(v.size(0), K, K, 2 * self.window_size)
         else:
             return combined.view(v.size(0), K, K, 2 * self.embed_dim)
-
 
 
 class TemporalAttentionLayer(nn.Module):
