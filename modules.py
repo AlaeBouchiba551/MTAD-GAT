@@ -77,16 +77,16 @@ class FeatureAttentionLayer(nn.Module):
         print(f"blocks_alternating.shape: {blocks_alternating.shape}")
         print(f"combined.shape: {combined.shape}")
 
-        # Ensure the shape is correct for the view operation
-        expected_size = combined.numel()  # Total number of elements in the combined tensor
-        actual_size = combined.size(0) * combined.size(1) * combined.size(2)
-        print(f"Expected size: {expected_size}, Actual size: {actual_size}")
-        assert expected_size == actual_size, f"Expected size {expected_size} but got {actual_size}"
+        # Calculate the new shape
+        batch_size = v.size(0)
+        combined_dim = combined.size(2)
+        assert combined_dim == combined_size, f"Expected combined_dim to be {combined_size}, but got {combined_dim}"
 
+        # Return the reshaped tensor
         if self.use_gatv2:
-            return combined.view(v.size(0), K, K, 2 * self.window_size)
+            return combined.view(batch_size, K, K, 2 * self.window_size)
         else:
-            return combined.view(v.size(0), K, K, 2 * self.embed_dim)
+            return combined.view(batch_size, K, K, 2 * self.embed_dim)
 
 
 class TemporalAttentionLayer(nn.Module):
