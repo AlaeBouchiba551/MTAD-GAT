@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
+from torch_geometric.nn import GATConv
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding='same'):
         super(ConvLayer, self).__init__()
+        if padding == 'same':
+            padding = kernel_size // 2
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.relu = nn.ReLU()
 
@@ -13,66 +16,72 @@ class ConvLayer(nn.Module):
         x = self.relu(x)
         return x
 
-
-class FeatureGATLayer(nn.Module):
-    def __init__(self, in_dim, out_dim, dropout=0.2, alpha=0.2, concat=True):
-        super(FeatureGATLayer, self).__init__()
-        self.in_dim = in_dim
-        self.out_dim = out_dim
+class FeatureAttentionLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, dropout, alpha, embed_dim, use_gatv2):
+        super(FeatureAttentionLayer, self).__init__()
+        self.gat = GATConv(in_dim, out_dim, heads=1, concat=True, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
-        self.leakyrelu = nn.LeakyReLU(alpha)
-        self.concat = concat
-
-        self.W = nn.Parameter(torch.empty(size=(in_dim, out_dim)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414)
-        self.a = nn.Parameter(torch.empty(size=(2 * out_dim, 1)))
-        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+        self.elu = nn.ELU()
 
     def forward(self, x):
-        h = torch.matmul(x, self.W)
-        batch_size, N, _ = h.size()
-        a_input = self._make_attention_input(h)
-        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(3))
-
-        attention = torch.softmax(e, dim=2)
-        h_prime = torch.matmul(attention, h)
-
-        if self.concat:
-            return torch.relu(h_prime)
-        else:
-            return h_prime
-
-    def _make_attention_input(self, x):
         B, N, D = x.size()
-        x = x.repeat(1, 1, N).view(B, N * N, D)
-        x_ = x.view(B, N, N, D)
-        x_ = x_.repeat(1, 1, 1, N).view(B, N, N, N, D)
-        x_ = x_.permute(0, 3, 1, 2, 4)
-        combined = torch.cat([x_.view(B, N * N * N, D), x], dim=-1)
-        return combined.view(B, N, N, 2 * D)
+        x = x.view(B * N, D)
+        x = self.gat(x, edge_index=None)
+        x = self.elu(x)
+        x = x.view(B, N, -1)
+        return x
 
-    # Ensure the reshaping dimensions match the input tensor's size
-    # Calculate the correct dimensions based on the input tensor
+class TemporalAttentionLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, dropout, alpha, embed_dim, use_gatv2):
+        super(TemporalAttentionLayer, self).__init__()
+        self.gat = GATConv(in_dim, out_dim, heads=1, concat=True, dropout=dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.elu = nn.ELU()
 
-    def _make_attention_input(self, x):
+    def forward(self, x):
         B, N, D = x.size()
-        print(f"Original x shape: {x.shape}")
+        x = x.view(B * N, D)
+        x = self.gat(x, edge_index=None)
+        x = self.elu(x)
+        x = x.view(B, N, -1)
+        return x
 
-        x_repeat = x.repeat(1, 1, N)
-        x_repeat = x_repeat.view(B, N, N, D)
-        print(f"x_repeat shape: {x_repeat.shape}")
+class GRULayer(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, dropout):
+        super(GRULayer, self).__init__()
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
 
-        x_ = x_repeat.repeat(1, N, 1, 1)
-        x_ = x_.view(B, N, N, N, D)
-        print(f"x_ shape: {x_.shape}")
+    def forward(self, x):
+        return self.gru(x)
 
-        x_ = x_.permute(0, 1, 3, 2, 4)
-        print(f"x_ permuted shape: {x_.shape}")
+class Forecasting_Model(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout):
+        super(Forecasting_Model, self).__init__()
+        layers = []
+        for _ in range(num_layers):
+            layers.append(nn.Linear(input_dim, hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            input_dim = hidden_dim
+        layers.append(nn.Linear(hidden_dim, output_dim))
+        self.model = nn.Sequential(*layers)
 
-        combined = torch.cat([x_.view(B, N * N, D), x.view(B, N, D).repeat(1, N, 1)], dim=-1)
-        print(f"Combined shape before view: {combined.shape}")
+    def forward(self, x):
+        return self.model(x)
 
-        combined = combined.view(B, N, N, 2 * D)
-        print(f"Combined shape after view: {combined.shape}")
+class ReconstructionModel(nn.Module):
+    def __init__(self, window_size, input_dim, hidden_dim, output_dim, num_layers, dropout):
+        super(ReconstructionModel, self).__init__()
+        layers = []
+        for _ in range(num_layers):
+            layers.append(nn.Linear(input_dim, hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            input_dim = hidden_dim
+        layers.append(nn.Linear(hidden_dim, window_size * output_dim))
+        self.model = nn.Sequential(*layers)
+        self.window_size = window_size
+        self.output_dim = output_dim
 
-        return combined
+    def forward(self, x):
+        return self.model(x).view(-1, self.window_size, self.output_dim)
