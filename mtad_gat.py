@@ -33,8 +33,7 @@ class MTAD_GAT(nn.Module):
         self.window_size = window_size
         self.conv = ConvLayer(in_channels=n_features, out_channels=64, kernel_size=kernel_size, stride=1, padding='same')
         self.feature_gat = FeatureAttentionLayer(n_features, window_size, dropout, alpha, feat_gat_embed_dim, use_gatv2)
-        self.temporal_gat = TemporalAttentionLayer(n_features, window_size, dropout, alpha, time_gat_embed_dim,
-                                                   use_gatv2)
+        self.temporal_gat = TemporalAttentionLayer(n_features, window_size, dropout, alpha, time_gat_embed_dim, use_gatv2)
         self.gru = GRULayer(3 * n_features, gru_hid_dim, gru_n_layers, dropout)
         self.forecasting_model = Forecasting_Model(gru_hid_dim, forecast_hid_dim, out_dim, forecast_n_layers, dropout)
         self.recon_model = ReconstructionModel(window_size, gru_hid_dim, recon_hid_dim, out_dim, recon_n_layers, dropout)
@@ -63,8 +62,3 @@ class MTAD_GAT(nn.Module):
             all_predictions.append(predictions)
             all_recons.append(recons)
         return torch.cat(all_predictions, dim=0), torch.cat(all_recons, dim=0)
-
-# Example usage:
-# model = MTAD_GAT(n_features=55, window_size=100, out_dim=55)
-# time_series data = torch.randn(1000, 55)  # Example time series data
-# predictions, recons = model.sliding_window_inference(time_series data)

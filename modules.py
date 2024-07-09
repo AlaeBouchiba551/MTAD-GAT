@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 
 
+class ConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super(ConvLayer, self).__init__()
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.relu(x)
+        return x
+
+
 class FeatureGATLayer(nn.Module):
     def __init__(self, in_dim, out_dim, dropout=0.2, alpha=0.2, concat=True):
         super(FeatureGATLayer, self).__init__()
