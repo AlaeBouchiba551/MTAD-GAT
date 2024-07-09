@@ -14,6 +14,13 @@ from args import get_parser
 from torch.utils.data import DataLoader, TensorDataset
 from eval_methods import sliding_window_evaluation, calculate_f1
 
+def model_prediction(model, window_data):
+    model.eval()
+    with torch.no_grad():
+        window_data_tensor = torch.tensor(window_data, dtype=torch.float32).unsqueeze(0)
+        forecast, _ = model(window_data_tensor)
+        return forecast.squeeze(0).argmax(dim=1).numpy()
+
 def run_experiment(train_data, test_data, window_size_min, window_size_max, window_step_size, args):
     results = []
     for window_size in range(window_size_min, window_size_max + 1, window_step_size):
@@ -55,8 +62,7 @@ def run_experiment(train_data, test_data, window_size_min, window_size_max, wind
         trainer.fit(train_loader, val_loader)
 
         # Perform sliding window evaluation
-        mean_f1 = sliding_window_evaluation(test_data[0], window_size, args.step_size, model, model_prediction,
-                                            true_labels=test_data[1])
+        mean_f1 = sliding_window_evaluation(test_data[0], window_size, args.step_size, model, model_prediction, true_labels=test_data[1])
 
         results.append((window_size, mean_f1))
         print(f'Window size: {window_size}, Mean F1 Score: {mean_f1}')

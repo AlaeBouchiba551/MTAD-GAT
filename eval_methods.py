@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from spot import SPOT, dSPOT
 from sklearn.metrics import f1_score
 
+def calculate_f1(true_labels, pred_labels):
+    return f1_score(true_labels, pred_labels, average='weighted')
 
 def sliding_window_anomaly_detection(time_series, window_size, step_size, detection_function, *args, **kwargs):
     """
@@ -31,8 +33,7 @@ def sliding_window_anomaly_detection(time_series, window_size, step_size, detect
 
     return results
 
-
-def sliding_window_evaluation(time_series, window_size, step_size, model, detection_function, *args, **kwargs):
+def sliding_window_evaluation(time_series, window_size, step_size, model, detection_function, true_labels):
     num_windows = (len(time_series) - window_size) // step_size + 1
     f1_scores = []
 
@@ -42,17 +43,14 @@ def sliding_window_evaluation(time_series, window_size, step_size, model, detect
         window_data = time_series[start:end]
 
         # Get predictions
-        predictions = detection_function(model, window_data, *args, **kwargs)
+        predictions = detection_function(model, window_data)
 
-        # Assuming that the true labels are provided in the kwargs
-        true_labels = kwargs.get('true_labels')[start:end]
+        # Get true labels for the current window
+        window_true_labels = true_labels[start:end]
 
         # Calculate F1 score for the current window
-        f1 = f1_score(true_labels, predictions, average='macro')
+        f1 = f1_score(window_true_labels, predictions, average='macro')
         f1_scores.append(f1)
 
     mean_f1 = np.mean(f1_scores)
     return mean_f1
-
-# Example usage:
-# mean_f1 = sliding_window_evaluation(time_series, window_size, step_size, model, detection_function, true_labels=true_labels)
