@@ -9,12 +9,17 @@ import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import cufflinks as cf
-import torch.nn as nn
-from training import Trainer
-
 cf.go_offline()
 
+
 class Plotter:
+
+    """
+    Class for visualizing results of anomaly detection.
+    Includes visualization of forecasts, reconstructions, anomaly scores, predicted and actual anomalies
+    Plotter-class inspired by TelemAnom (https://github.com/khundman/telemanom)
+    """
+
     def __init__(self, result_path, model_id='-1'):
         self.result_path = result_path
         self.model_id = model_id
@@ -22,30 +27,6 @@ class Plotter:
         self.test_output = None
         self.labels_available = True
         self.pred_cols = None
-
-        model = None  # Replace with actual model instance
-        optimizer = None  # Replace with actual optimizer instance
-        window_size = 100  # Example value
-        n_features = 55  # Example value
-
-        self.trainer = Trainer(
-            model=model,
-            optimizer=optimizer,
-            window_size=window_size,
-            n_features=n_features,
-            n_epochs=30,  # Example value
-            batch_size=256,  # Example value
-            init_lr=0.001,  # Example value
-            forecast_criterion=nn.MSELoss(),  # Example value
-            recon_criterion=nn.MSELoss(),  # Example value
-            use_cuda=True,  # Example value
-            dload=result_path,
-            log_dir="output/",
-            print_every=1,
-            log_tensorboard=True,
-            args_summary=""
-        )
-
         self._load_results()
         self.train_output["timestamp"] = self.train_output.index
         self.test_output["timestamp"] = self.test_output.index
@@ -69,9 +50,23 @@ class Plotter:
             self.result_path = f'{self.result_path}/{model_id}'
 
         print(f"Loading results of {self.result_path}")
-        self.trainer.load_results(self.result_path, self.model_id)
-        self.train_output = self.trainer.get_train_output()
-        self.test_output = self.trainer.get_test_output()
+        train_output = pd.read_pickle(f"{self.result_path}/train_output.pkl")
+        train_output.to_pickle(f"{self.result_path}/train_output.pkl")
+        train_output["A_True_Global"] = 0
+        test_output = pd.read_pickle(f"{self.result_path}/test_output.pkl")
+
+        # Because for SMAP and MSL only one feature is predicted
+        if 'SMAP' in self.result_path or 'MSL' in self.result_path:
+            train_output[f'A_Pred_0'] = train_output['A_Pred_Global']
+            train_output[f'A_Score_0'] = train_output['A_Score_Global']
+            train_output[f'Thresh_0'] = train_output['Thresh_Global']
+
+            test_output[f'A_Pred_0'] = test_output['A_Pred_Global']
+            test_output[f'A_Score_0'] = test_output['A_Score_Global']
+            test_output[f'Thresh_0'] = test_output['Thresh_Global']
+
+        self.train_output = train_output
+        self.test_output = test_output
 
     def result_summary(self):
         path = f"{self.result_path}/summary.txt"
@@ -96,6 +91,18 @@ class Plotter:
             print(e)
 
     def create_shapes(self, ranges, sequence_type, _min, _max, plot_values, is_test=True, xref=None, yref=None):
+        """
+        Create shapes for regions to highlight in plotly (true and predicted anomaly sequences).
+
+        :param ranges: tuple of start and end indices for anomaly sequences for a feature
+        :param sequence_type: "predict" if predicted values else "true" if actual values. Determines colors.
+        :param _min: min y value of series
+        :param _max: max y value of series
+        :param plot_values: dictionary of different series to be plotted
+
+        :return: list of shapes specifications for plotly
+        """
+
         if _max is None:
             _max = max(plot_values["errors"])
 
@@ -145,6 +152,11 @@ class Plotter:
         return a_seqs
 
     def plot_feature(self, feature, plot_train=False, plot_errors=True, plot_feature_anom=False, start=None, end=None):
+        """
+        Plot forecasting, reconstruction, true value of a specific feature (feature),
+        along with the anomaly score for that feature
+        """
+
         test_copy = self.test_output.copy()
 
         if start is not None and end is not None:
@@ -274,67 +286,41 @@ class Plotter:
                 e_fig = go.Figure(data=e_lines, layout=e_layout)
                 py.offline.iplot(e_fig)
 
-    def plot_all_features(self, plot_train=False, plot_errors=True, plot_feature_anom=True, start=None, end=None):
-        test_copy = self.trainer.get_test_output()
+    def plot_all_features(self, start=None, end=None, type="test"):
+        """
+        Plotting all features, using the following order:
+            - forecasting for feature i
+            - reconstruction for feature i
+            - true value for feature i
+            - anomaly score (error) for feature i
+        """
+        if type == "train":
+            data_copy = self.train_output.copy()
+        elif type == "test":
+            data_copy = self.test_output.copy()
+
+        data_copy = data_copy.drop(columns=['timestamp', 'A_Score_Global', 'Thresh_Global'])
+        cols = [c for c in data_copy.columns if not (c.startswith('Thresh_') or c.startswith('A_Pred_'))]
+        data_copy = data_copy[cols]
 
         if start is not None and end is not None:
             assert start < end
         if start is not None:
-            test_copy = test_copy.iloc[start:, :]
+            data_copy = data_copy.iloc[start:, :]
         if end is not None:
             start = 0 if start is None else start
-            test_copy = test_copy.iloc[: end - start, :]
+            data_copy = data_copy.iloc[: end - start, :]
 
-        plot_data = [test_copy]
-
-        if plot_train:
-            train_copy = self.trainer.get_train_output()
-            plot_data.append(train_copy)
-
-        for nr, data_copy in enumerate(plot_data):
-            is_test = nr == 0
-
-            fig = make_subplots(rows=len(self.pred_cols), cols=1, shared_xaxes=True)
-
-            for row, i in enumerate(self.pred_cols, 1):
-                if f"Forecast_{i}" not in data_copy.columns:
-                    continue
-
-                plot_values = {
-                    "timestamp": data_copy["timestamp"].values,
-                    "y_forecast": data_copy[f"Forecast_{i}"].values,
-                    "y_recon": data_copy[f"Recon_{i}"].values,
-                    "y_true": data_copy[f"True_{i}"].values,
-                    "errors": data_copy[f"A_Score_{i}"].values,
-                    "threshold": data_copy[f"Thresh_{i}"].values
-                }
-
-                anomaly_sequences = {
-                    "pred": self.get_anomaly_sequences(data_copy[f"A_Pred_{i}"].values),
-                    "true": self.get_anomaly_sequences(data_copy["A_True_Global"].values),
-                }
-
-                if is_test and start is not None:
-                    anomaly_sequences['pred'] = [[s + start, e + start] for [s, e] in anomaly_sequences['pred']]
-                    anomaly_sequences['true'] = [[s + start, e + start] for [s, e] in anomaly_sequences['true']]
-
-                y_min = 1.1 * plot_values["y_true"].min()
-                y_max = 1.1 * plot_values["y_true"].max()
-
-                y_shapes = self.create_shapes(anomaly_sequences["pred"], "predicted", y_min, y_max, plot_values, is_test=is_test)
-                if self.labels_available and ('SMAP' in self.result_path or 'MSL' in self.result_path):
-                    y_shapes += self.create_shapes(anomaly_sequences["true"], "true", y_min, y_max, plot_values, is_test=is_test)
-
-                fig.add_trace(go.Scatter(x=plot_values["timestamp"], y=plot_values["y_true"], mode='lines', name=f'y_true_{i}'), row=row, col=1)
-                fig.add_trace(go.Scatter(x=plot_values["timestamp"], y=plot_values["y_forecast"], mode='lines', name=f'y_forecast_{i}'), row=row, col=1)
-                fig.add_trace(go.Scatter(x=plot_values["timestamp"], y=plot_values["y_recon"], mode='lines', name=f'y_recon_{i}'), row=row, col=1)
-
-                fig.update_yaxes(range=[y_min, y_max], row=row, col=1)
-
-            fig.update_layout(height=400 * len(self.pred_cols), width=1100, title="All Features | Forecast & reconstruction vs true value")
-            py.offline.iplot(fig)
+        num_cols = data_copy.shape[1]
+        plt.tight_layout()
+        colors = ["gray", "gray", "gray", "r"] * (num_cols // 4) + ["b", "g"]
+        data_copy.plot(subplots=True, figsize=(20, num_cols), ylim=(0, 1.5), style=colors)
+        plt.show()
 
     def plot_anomaly_segments(self, type="test", num_aligned_segments=None, show_boring_series=False):
+        """
+        Finds collective anomalies, i.e. feature-wise anomalies that occur at the same time, and visualize them
+        """
         is_test = True
         if type == "train":
             data_copy = self.train_output.copy()
@@ -374,7 +360,7 @@ class Plotter:
             anomaly_sequences = self.get_anomaly_sequences(data_copy[f"A_Pred_{new_idx}"].values)
 
             y_min = -0.1
-            y_max = 2
+            y_max = 2  # 0.5 * y_max
 
             j = i + 1
             xref = f"x{j}" if i > 0 else "x"
@@ -391,6 +377,7 @@ class Plotter:
 
             annotations.append(
                 dict(
+                    # xref="paper",
                     xanchor="left",
                     yref=yref,
                     text=f"<b>{non_constant_pred_cols[i].upper()}</b>",
@@ -482,7 +469,7 @@ class Plotter:
         pred_anomaly_sequences = self.get_anomaly_sequences(data_copy[f"A_Pred_Global"].values)
         threshold = data_copy['Thresh_Global'].values
         y_min = -0.1
-        y_max = 5 * np.mean(threshold)
+        y_max = 5 * np.mean(threshold) # np.max(tot_anomaly_scores)
         shapes = self.create_shapes(pred_anomaly_sequences, "pred", y_min, y_max, None, is_test=is_test)
         if self.labels_available and is_test:
             true_anomaly_sequences = self.get_anomaly_sequences(data_copy[f"A_True_Global"].values)
@@ -504,16 +491,3 @@ class Plotter:
             layout=layout,
         )
         py.offline.iplot(fig)
-
-    def plot_f1_scores(self):
-        f1_scores = np.load(os.path.join(self.result_path, "f1_scores.npy"))
-        plt.plot(f1_scores)
-        plt.xlabel('Timestamp')
-        plt.ylabel('F1 Score')
-        plt.title('F1 Score per Timestamp')
-        plt.show()
-
-    def summarize_f1_scores(self):
-        f1_scores = np.load(os.path.join(self.result_path, "f1_scores.npy"))
-        mean_f1_score = np.mean(f1_scores)
-        print(f"Mean F1 Score: {mean_f1_score:.5f}")

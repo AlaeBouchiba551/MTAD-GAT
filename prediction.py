@@ -2,10 +2,7 @@ import json
 from tqdm import tqdm
 from eval_methods import *
 from utils import *
-from sklearn.metrics import f1_score
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+
 
 class Predictor:
     """MTAD-GAT predictor class.
@@ -14,6 +11,7 @@ class Predictor:
     :param window_size: Length of the input sequence
     :param n_features: Number of input features
     :param pred_args: params for thresholding and predicting anomalies
+
     """
 
     def __init__(self, model, window_size, n_features, pred_args, summary_file_name="summary.txt"):
@@ -95,7 +93,8 @@ class Predictor:
 
         return df
 
-    def predict_anomalies(self, train, test, true_anomalies, load_scores=False, save_output=True, scale_scores=False):
+    def predict_anomalies(self, train, test, true_anomalies, load_scores=False, save_output=True,
+                          scale_scores=False):
         """ Predicts anomalies
 
         :param train: 2D array of train multivariate time series data
@@ -201,42 +200,3 @@ class Predictor:
             test_pred_df.to_pickle(f"{self.save_path}/test_output.pkl")
 
         print("-- Done.")
-
-    def sliding_window_f1_evaluation(self, test, true_anomalies):
-        """ Perform sliding window evaluation to calculate F1 score for each timestamp and the mean F1 score
-
-        :param test: 2D array of test multivariate time series data
-        :param true_anomalies: true anomalies of test set, None if not available
-        """
-        self.model.eval()
-        device = "cuda" if self.use_cuda and torch.cuda.is_available() else "cpu"
-
-        f1_scores = []
-        with torch.no_grad():
-            for i in range(len(test) - self.window_size + 1):
-                window_data = test[i:i + self.window_size]
-                window_label = true_anomalies[i + self.window_size - 1] if true_anomalies is not None else None
-
-                window_data = torch.tensor(window_data, dtype=torch.float32).unsqueeze(0).to(device)
-                preds, _ = self.model(window_data)
-                preds = preds.squeeze(0).cpu().numpy()
-
-                if window_label is not None:
-                    f1 = f1_score([window_label], preds > 0.5)  # Adjust threshold as needed
-                    f1_scores.append(f1)
-
-        mean_f1_score = np.mean(f1_scores)
-        print(f"Mean F1 Score: {mean_f1_score:.5f}")
-
-        # Save F1 scores
-        np.save(os.path.join(self.save_path, "f1_scores.npy"), f1_scores)
-
-        # Visualize F1 scores
-        plt.plot(f1_scores)
-        plt.xlabel('Timestamp')
-        plt.ylabel('F1 Score')
-        plt.title('F1 Score per Timestamp')
-        plt.savefig(os.path.join(self.save_path, "f1_scores.png"))
-        plt.show()
-
-        return mean_f1_score
