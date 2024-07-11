@@ -1,11 +1,12 @@
 import json
 from datetime import datetime
 import torch.nn as nn
+import os
+import torch
 
 from args import get_parser
-from utils import *
+from utils import get_data, get_loaders, get_target_dims
 from mtad_gat import MTAD_GAT
-from prediction import Predictor
 from training import Trainer
 
 if __name__ == "__main__":
