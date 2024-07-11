@@ -103,4 +103,7 @@ if __name__ == "__main__":
         args_summary=args_summary,
     )
 
-    trainer.train(x_train, x_test, val_split=val_split, shuffle_dataset=shuffle_dataset)
+    # Prepare data loaders
+    train_loader, val_loader = get_loaders(x_train, val_split, batch_size, shuffle_dataset)
+
+    trainer.fit(train_loader, val_loader)
