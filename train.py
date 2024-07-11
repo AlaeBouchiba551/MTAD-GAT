@@ -6,7 +6,7 @@ import os
 import matplotlib.pyplot as plt
 
 from args import get_parser
-from utils import *
+from utils import get_data, get_target_dims, create_data_loaders, SlidingWindowDataset
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
@@ -51,21 +51,22 @@ if __name__ == "__main__":
     args_summary = str(args.__dict__)
     print(args_summary)
 
-    if dataset == 'SMD':
-        output_path = f'output/SMD/{args.group}'
-        (x_train, _), (x_test, y_test) = get_data(f"machine-{group_index}-{index}", normalize=normalize)
-    elif dataset in ['MSL', 'SMAP']:
-        output_path = f'output/{dataset}'
-        (x_train, _), (x_test, y_test) = get_data(dataset, normalize=normalize)
-    else:
-        raise Exception(f'Dataset "{dataset}" not available.')
-
-    log_dir = f'{output_path}/logs'
+    output_path = f'output/{dataset}'
     if not os.path.exists(output_path):
         os.makedirs(output_path)
+    log_dir = f'{output_path}/logs'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     save_path = f"{output_path}/{id}"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    if dataset == 'SMD':
+        (x_train, _), (x_test, y_test) = get_data(f"machine-{group_index}-{index}", normalize=normalize)
+    elif dataset in ['MSL', 'SMAP']:
+        (x_train, _), (x_test, y_test) = get_data(dataset, normalize=normalize)
+    else:
+        raise Exception(f'Dataset "{dataset}" not available.')
 
     x_train = torch.from_numpy(x_train).float()
     x_test = torch.from_numpy(x_test).float()
