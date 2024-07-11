@@ -184,49 +184,24 @@ class Trainer:
             self.writer.add_text("total_train_time", str(train_time))
         print(f"-- Training done in {train_time}s.")
 
+    # Modify the evaluate method in training.py to handle datasets without labels
     def evaluate(self, data_loader):
-        """Evaluate model
-
-        :param data_loader: data loader of input data
-        :return forecasting loss, reconstruction loss, total loss
-        """
-
         self.model.eval()
-
-        forecast_losses = []
-        recon_losses = []
-
+        total_loss = 0
+        total_forecast_loss = 0
+        total_recon_loss = 0
         with torch.no_grad():
-            for x, y in data_loader:
+            for x in data_loader:
                 x = x.to(self.device)
-                y = y.to(self.device)
-
-                preds, recons = self.model(x)
-
-                if self.target_dims is not None:
-                    x = x[:, :, self.target_dims]
-                    y = y[:, :, self.target_dims].squeeze(-1)
-
-                if preds.ndim == 3:
-                    preds = preds.squeeze(1)
-                if y.ndim == 3:
-                    y = y.squeeze(1)
-
-                forecast_loss = torch.sqrt(self.forecast_criterion(y, preds))
-                recon_loss = torch.sqrt(self.recon_criterion(x, recons))
-
-                forecast_losses.append(forecast_loss.item())
-                recon_losses.append(recon_loss.item())
-
-        forecast_losses = np.array(forecast_losses)
-        recon_losses = np.array(recon_losses)
-
-        forecast_loss = np.sqrt((forecast_losses ** 2).mean())
-        recon_loss = np.sqrt((recon_losses ** 2).mean())
-
-        total_loss = forecast_loss + recon_loss
-
-        return forecast_loss, recon_loss, total_loss
+                forecast, recon = self.model(x)
+                forecast_loss = self.forecast_criterion(forecast, x[:, -1, :self.out_dim])
+                recon_loss = self.recon_criterion(recon, x)
+                loss = forecast_loss + recon_loss
+                total_loss += loss.item()
+                total_forecast_loss += forecast_loss.item()
+                total_recon_loss += recon_loss.item()
+        n_batches = len(data_loader)
+        return total_loss / n_batches, total_forecast_loss / n_batches, total_recon_loss / n_batches
 
     def save(self, file_name):
         """
