@@ -8,7 +8,6 @@ from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
 
-
 if __name__ == "__main__":
 
     id = datetime.now().strftime("%d%m%Y_%H%M%S")
@@ -53,7 +52,9 @@ if __name__ == "__main__":
     x_test = torch.from_numpy(x_test).float()
     n_features = x_train.shape[1]
 
-    target_dims = get_target_dims(dataset)
+    # Setting target_dims to 1 to focus on the second feature
+    target_dims = 1
+
     if target_dims is None:
         out_dim = n_features
         print(f"Will forecast and reconstruct all {n_features} input features")
@@ -62,111 +63,44 @@ if __name__ == "__main__":
         out_dim = 1
     else:
         print(f"Will forecast and reconstruct input features: {target_dims}")
-        out_dim = len(target_dims)
-
-    train_dataset = SlidingWindowDataset(x_train, window_size, target_dims)
-    test_dataset = SlidingWindowDataset(x_test, window_size, target_dims)
-
-    train_loader, val_loader, test_loader = create_data_loaders(
-        train_dataset, batch_size, val_split, shuffle_dataset, test_dataset=test_dataset
-    )
 
     model = MTAD_GAT(
-        n_features,
-        window_size,
-        out_dim,
-        kernel_size=args.kernel_size,
-        use_gatv2=args.use_gatv2,
-        feat_gat_embed_dim=args.feat_gat_embed_dim,
-        time_gat_embed_dim=args.time_gat_embed_dim,
-        gru_n_layers=args.gru_n_layers,
-        gru_hid_dim=args.gru_hid_dim,
-        forecast_n_layers=args.fc_n_layers,
-        forecast_hid_dim=args.fc_hid_dim,
-        recon_n_layers=args.recon_n_layers,
-        recon_hid_dim=args.recon_hid_dim,
-        dropout=args.dropout,
-        alpha=args.alpha
+        n_features=n_features,
+        window_size=window_size,
+        out_dim=out_dim,
+        kernel_size=7,
+        feat_gat_embed_dim=None,
+        time_gat_embed_dim=None,
+        use_gatv2=True,
+        gru_n_layers=1,
+        gru_hid_dim=150,
+        forecast_n_layers=1,
+        forecast_hid_dim=150,
+        recon_n_layers=1,
+        recon_hid_dim=150,
+        dropout=0.2,
+        alpha=0.2
     )
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.init_lr)
-    forecast_criterion = nn.MSELoss()
-    recon_criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=init_lr)
 
     trainer = Trainer(
-        model,
-        optimizer,
-        window_size,
-        n_features,
-        target_dims,
-        n_epochs,
-        batch_size,
-        init_lr,
-        forecast_criterion,
-        recon_criterion,
-        use_cuda,
-        save_path,
-        log_dir,
-        print_every,
-        log_tensorboard,
-        args_summary
+        model=model,
+        optimizer=optimizer,
+        window_size=window_size,
+        n_features=n_features,
+        target_dims=target_dims,
+        n_epochs=n_epochs,
+        batch_size=batch_size,
+        init_lr=init_lr,
+        forecast_criterion=nn.MSELoss(),
+        recon_criterion=nn.MSELoss(),
+        use_cuda=use_cuda,
+        dload=save_path,
+        log_dir=log_dir,
+        print_every=print_every,
+        log_tensorboard=log_tensorboard,
+        args_summary=args_summary,
     )
 
-    trainer.fit(train_loader, val_loader)
-
-    plot_losses(trainer.losses, save_path=save_path, plot=False)
-
-    # Check test loss
-    test_loss = trainer.evaluate(test_loader)
-    print(f"Test forecast loss: {test_loss[0]:.5f}")
-    print(f"Test reconstruction loss: {test_loss[1]:.5f}")
-    print(f"Test total loss: {test_loss[2]:.5f}")
-
-    # Some suggestions for POT args
-    level_q_dict = {
-        "SMAP": (0.90, 0.005),
-        "MSL": (0.90, 0.001),
-        "SMD-1": (0.9950, 0.001),
-        "SMD-2": (0.9925, 0.001),
-        "SMD-3": (0.9999, 0.001)
-    }
-    key = "SMD-" + args.group[0] if args.dataset == "SMD" else args.dataset
-    level, q = level_q_dict[key]
-    if args.level is not None:
-        level = args.level
-    if args.q is not None:
-        q = args.q
-
-    # Some suggestions for Epsilon args
-    reg_level_dict = {"SMAP": 0, "MSL": 0, "SMD-1": 1, "SMD-2": 1, "SMD-3": 1}
-    key = "SMD-" + args.group[0] if dataset == "SMD" else dataset
-    reg_level = reg_level_dict[key]
-
-    trainer.load(f"{save_path}/model.pt")
-    prediction_args = {
-        'dataset': dataset,
-        "target_dims": target_dims,
-        'scale_scores': args.scale_scores,
-        "level": level,
-        "q": q,
-        'dynamic_pot': args.dynamic_pot,
-        "use_mov_av": args.use_mov_av,
-        "gamma": args.gamma,
-        "reg_level": reg_level,
-        "save_path": save_path,
-    }
-    best_model = trainer.model
-    predictor = Predictor(
-        best_model,
-        window_size,
-        n_features,
-        prediction_args,
-    )
-
-    label = y_test[window_size:] if y_test is not None else None
-    predictor.predict_anomalies(x_train, x_test, label)
-
-    # Save config
-    args_path = f"{save_path}/config.txt"
-    with open(args_path, "w") as f:
-        json.dump(args.__dict__, f, indent=2)
+    trainer.train(x_train, x_test, val_split=val_split, shuffle_dataset=shuffle_dataset)
