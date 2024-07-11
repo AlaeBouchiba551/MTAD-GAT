@@ -12,18 +12,19 @@ from training import Trainer
 
 
 class TimeSeriesDataset(Dataset):
-    def __init__(self, data):
+    def __init__(self, data, seq_len):
         self.data = data
+        self.seq_len = seq_len
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) - self.seq_len + 1
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        return self.data[idx:idx + self.seq_len]
 
 
-def get_loaders(x_train, val_split, batch_size, shuffle_dataset=True):
-    dataset = TimeSeriesDataset(x_train)
+def get_loaders(x_train, val_split, batch_size, seq_len, shuffle_dataset=True):
+    dataset = TimeSeriesDataset(x_train, seq_len)
     val_size = int(val_split * len(dataset))
     train_size = len(dataset) - val_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -130,6 +131,6 @@ if __name__ == "__main__":
     )
 
     # Prepare data loaders
-    train_loader, val_loader = get_loaders(x_train, val_split, batch_size, shuffle_dataset)
+    train_loader, val_loader = get_loaders(x_train, val_split, batch_size, window_size, shuffle_dataset)
 
     trainer.fit(train_loader, val_loader)
