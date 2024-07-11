@@ -1,11 +1,3 @@
-import os
-import time
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.utils.tensorboard import SummaryWriter
-
-
 class Trainer:
     """Trainer class for MTAD-GAT model.
 
@@ -63,6 +55,8 @@ class Trainer:
         self.print_every = print_every
         self.log_tensorboard = log_tensorboard
 
+        self.out_dim = n_features if target_dims is None else len(target_dims) if isinstance(target_dims, list) else 1
+
         self.losses = {
             "train_total": [],
             "train_forecast": [],
@@ -87,104 +81,57 @@ class Trainer:
         :param train_loader: train loader of input data
         :param val_loader: validation loader of input data
         """
-
-        init_train_loss = self.evaluate(train_loader)
-        print(f"Init total train loss: {init_train_loss[2]:5f}")
-
-        if val_loader is not None:
-            init_val_loss = self.evaluate(val_loader)
-            print(f"Init total val loss: {init_val_loss[2]:.5f}")
-
-        print(f"Training model for {self.n_epochs} epochs..")
-        train_start = time.time()
         for epoch in range(self.n_epochs):
-            epoch_start = time.time()
+            start_time = time.time()
             self.model.train()
-            forecast_b_losses = []
-            recon_b_losses = []
-
-            for x, y in train_loader:
+            total_loss = 0
+            total_forecast_loss = 0
+            total_recon_loss = 0
+            for x in train_loader:
                 x = x.to(self.device)
-                y = y.to(self.device)
                 self.optimizer.zero_grad()
-
-                preds, recons = self.model(x)
-
-                if self.target_dims is not None:
-                    x = x[:, :, self.target_dims]
-                    y = y[:, :, self.target_dims].squeeze(-1)
-
-                if preds.ndim == 3:
-                    preds = preds.squeeze(1)
-                if y.ndim == 3:
-                    y = y.squeeze(1)
-
-                forecast_loss = torch.sqrt(self.forecast_criterion(y, preds))
-                recon_loss = torch.sqrt(self.recon_criterion(x, recons))
+                forecast, recon = self.model(x)
+                forecast_loss = self.forecast_criterion(forecast, x[:, -1, :self.out_dim])
+                recon_loss = self.recon_criterion(recon, x)
                 loss = forecast_loss + recon_loss
-
                 loss.backward()
                 self.optimizer.step()
+                total_loss += loss.item()
+                total_forecast_loss += forecast_loss.item()
+                total_recon_loss += recon_loss.item()
 
-                forecast_b_losses.append(forecast_loss.item())
-                recon_b_losses.append(recon_loss.item())
+            n_batches = len(train_loader)
+            avg_loss = total_loss / n_batches
+            avg_forecast_loss = total_forecast_loss / n_batches
+            avg_recon_loss = total_recon_loss / n_batches
 
-            forecast_b_losses = np.array(forecast_b_losses)
-            recon_b_losses = np.array(recon_b_losses)
+            self.losses["train_total"].append(avg_loss)
+            self.losses["train_forecast"].append(avg_forecast_loss)
+            self.losses["train_recon"].append(avg_recon_loss)
+            self.epoch_times.append(time.time() - start_time)
 
-            forecast_epoch_loss = np.sqrt((forecast_b_losses ** 2).mean())
-            recon_epoch_loss = np.sqrt((recon_b_losses ** 2).mean())
-
-            total_epoch_loss = forecast_epoch_loss + recon_epoch_loss
-
-            self.losses["train_forecast"].append(forecast_epoch_loss)
-            self.losses["train_recon"].append(recon_epoch_loss)
-            self.losses["train_total"].append(total_epoch_loss)
-
-            # Evaluate on validation set
-            forecast_val_loss, recon_val_loss, total_val_loss = "NA", "NA", "NA"
             if val_loader is not None:
-                forecast_val_loss, recon_val_loss, total_val_loss = self.evaluate(val_loader)
-                self.losses["val_forecast"].append(forecast_val_loss)
-                self.losses["val_recon"].append(recon_val_loss)
-                self.losses["val_total"].append(total_val_loss)
-
-                if total_val_loss <= self.losses["val_total"][-1]:
-                    self.save(f"model.pt")
+                val_loss, val_forecast_loss, val_recon_loss = self.evaluate(val_loader)
+                self.losses["val_total"].append(val_loss)
+                self.losses["val_forecast"].append(val_forecast_loss)
+                self.losses["val_recon"].append(val_recon_loss)
 
             if self.log_tensorboard:
-                self.write_loss(epoch)
+                self.writer.add_scalar("Loss/train_total", avg_loss, epoch)
+                self.writer.add_scalar("Loss/train_forecast", avg_forecast_loss, epoch)
+                self.writer.add_scalar("Loss/train_recon", avg_recon_loss, epoch)
+                if val_loader is not None:
+                    self.writer.add_scalar("Loss/val_total", val_loss, epoch)
+                    self.writer.add_scalar("Loss/val_forecast", val_forecast_loss, epoch)
+                    self.writer.add_scalar("Loss/val_recon", val_recon_loss, epoch)
 
-            epoch_time = time.time() - epoch_start
-            self.epoch_times.append(epoch_time)
-
-            if epoch % self.print_every == 0:
-                s = (
-                    f"[Epoch {epoch + 1}] "
-                    f"forecast_loss = {forecast_epoch_loss:.5f}, "
-                    f"recon_loss = {recon_epoch_loss:.5f}, "
-                    f"total_loss = {total_epoch_loss:.5f}"
+            if (epoch + 1) % self.print_every == 0:
+                print(
+                    f"Epoch {epoch+1}/{self.n_epochs}, "
+                    f"Train Loss: {avg_loss:.4f}, "
+                    f"Val Loss: {val_loss:.4f}" if val_loader is not None else ""
                 )
 
-                if val_loader is not None:
-                    s += (
-                        f" ---- val_forecast_loss = {forecast_val_loss:.5f}, "
-                        f"val_recon_loss = {recon_val_loss:.5f}, "
-                        f"val_total_loss = {total_val_loss:.5f}"
-                    )
-
-                s += f" [{epoch_time:.1f}s]"
-                print(s)
-
-        if val_loader is None:
-            self.save(f"model.pt")
-
-        train_time = int(time.time() - train_start)
-        if self.log_tensorboard:
-            self.writer.add_text("total_train_time", str(train_time))
-        print(f"-- Training done in {train_time}s.")
-
-    # Modify the evaluate method in training.py to handle datasets without labels
     def evaluate(self, data_loader):
         self.model.eval()
         total_loss = 0
@@ -202,27 +149,3 @@ class Trainer:
                 total_recon_loss += recon_loss.item()
         n_batches = len(data_loader)
         return total_loss / n_batches, total_forecast_loss / n_batches, total_recon_loss / n_batches
-
-    def save(self, file_name):
-        """
-        Pickles the model parameters to be retrieved later
-        :param file_name: the filename to be saved as,`dload` serves as the download directory
-        """
-        PATH = self.dload + "/" + file_name
-        if os.path.exists(self.dload):
-            pass
-        else:
-            os.mkdir(self.dload)
-        torch.save(self.model.state_dict(), PATH)
-
-    def load(self, PATH):
-        """
-        Loads the model's parameters from the path mentioned
-        :param PATH: Should contain pickle file
-        """
-        self.model.load_state_dict(torch.load(PATH, map_location=self.device))
-
-    def write_loss(self, epoch):
-        for key, value in self.losses.items():
-            if len(value) != 0:
-                self.writer.add_scalar(key, value[-1], epoch)
