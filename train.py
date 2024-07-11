@@ -1,30 +1,12 @@
 import json
 from datetime import datetime
 import torch.nn as nn
-import torch
-import os
-import matplotlib.pyplot as plt
 
 from args import get_parser
 from utils import *
 from mtad_gat import MTAD_GAT
 from prediction import Predictor
 from training import Trainer
-
-
-def plot_losses(losses, save_path=None, plot=True):
-    plt.figure(figsize=(10, 6))
-    plt.plot(losses["train_total"], label="Train Total Loss")
-    if losses["val_total"]:
-        plt.plot(losses["val_total"], label="Validation Total Loss")
-    plt.title("Training and Validation Losses")
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.legend()
-    if save_path:
-        plt.savefig(os.path.join(save_path, "losses.png"))
-    if plot:
-        plt.show()
 
 
 if __name__ == "__main__":
@@ -71,9 +53,7 @@ if __name__ == "__main__":
     x_test = torch.from_numpy(x_test).float()
     n_features = x_train.shape[1]
 
-    # Focus on the second feature (index 1)
-    target_dims = [1]
-
+    target_dims = get_target_dims(dataset)
     if target_dims is None:
         out_dim = n_features
         print(f"Will forecast and reconstruct all {n_features} input features")
@@ -134,7 +114,7 @@ if __name__ == "__main__":
 
     trainer.fit(train_loader, val_loader)
 
-    plot_losses(trainer.losses, save_path=save_path, plot=True)
+    plot_losses(trainer.losses, save_path=save_path, plot=False)
 
     # Check test loss
     test_loss = trainer.evaluate(test_loader)
