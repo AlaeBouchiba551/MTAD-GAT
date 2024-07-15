@@ -44,7 +44,7 @@ def get_parser():
     # --- Train params ---
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--val_split", type=float, default=0.1)
-    parser.add_argument("--bs", type=int, default=256)
+    parser.add_argument("--bs", type=int, default=32)
     parser.add_argument("--init_lr", type=float, default=1e-3)
     parser.add_argument("--shuffle_dataset", type=str2bool, default=True)
     parser.add_argument("--dropout", type=float, default=0.3)
